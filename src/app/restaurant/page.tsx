@@ -145,8 +145,8 @@ export default function RestaurantPage() {
                                 <button
                                     className="btn-primary"
                                     onClick={handleClassify}
-                                    disabled={!foodType || !weight || !price || parseFloat(weight) <= 0}
-                                    style={{ marginTop: 28, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: (!foodType || !weight || !price || parseFloat(weight) <= 0) ? 0.6 : 1 }}
+                                    disabled={!foodType || !weight || !price || parseFloat(weight) <= 0 || parseFloat(price) < 0 || !description}
+                                    style={{ marginTop: 28, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: (!foodType || !weight || !price || parseFloat(weight) <= 0 || parseFloat(price) < 0 || !description) ? 0.6 : 1 }}
                                 >
                                     <Sparkles size={18} /> Check Safety with AI
                                 </button>
