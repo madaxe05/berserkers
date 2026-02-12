@@ -1,6 +1,7 @@
 "use client";
 
-import { useApp, UserRole } from "@/context/AppContext";
+import { useApp } from "@/context/AppContext";
+import { UserRole } from "@/lib/types";
 import { Recycle, Store, Tractor, BarChart3, LogOut, Leaf } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 

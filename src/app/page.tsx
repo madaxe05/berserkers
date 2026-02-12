@@ -94,9 +94,9 @@ export default function Home() {
       <section className="animate-fade-in stagger-5" style={{ padding: "40px 24px 48px" }}>
         <div style={{ maxWidth: 780, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 16 }}>
           {[
-            { icon: <Recycle size={20} />, label: "Waste Diverted", value: "2,450 kg" },
-            { icon: <Leaf size={20} />, label: "CO₂ Saved", value: "6,125 kg" },
-            { icon: <Tractor size={20} />, label: "Farmers Helped", value: "42" },
+            { icon: <Recycle size={20} />, label: "Waste Diverted", value: `${useApp().totalWasteDiverted.toFixed(0)} kg` },
+            { icon: <Leaf size={20} />, label: "CO₂ Saved", value: `${useApp().totalCO2Saved.toFixed(0)} kg` },
+            { icon: <Tractor size={20} />, label: "Farmers Helped", value: useApp().totalFarmersSupported.toString() },
           ].map((s, i) => (
             <div key={i} className="glass-sm" style={{ padding: "20px 16px", textAlign: "center" }}>
               <div style={{ color: "var(--accent-green)", marginBottom: 8, display: "flex", justifyContent: "center" }}>{s.icon}</div>

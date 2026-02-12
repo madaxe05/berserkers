@@ -1,27 +1,22 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+  addDoc,
+  updateDoc,
+  doc,
+  serverTimestamp,
+  limit
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { WasteItem, UserRole } from "@/lib/types";
+import { classifyWasteLogic } from "@/lib/utils";
 
-/* ── types ─────────────────────────────────────────────── */
-export type UserRole = "restaurant" | "farmer" | "admin";
-
-export interface WasteItem {
-  id: string;
-  restaurantName: string;
-  foodType: string;
-  category: "vegetable" | "grain" | "mixed" | "meat" | "dairy" | "bread";
-  weightKg: number;
-  safetyScore: number;
-  suitableFor: string;
-  price: number;
-  distance: string;
-  imageUrl: string;
-  status: "listed" | "sold" | "picked_up";
-  createdAt: string;
-  buyerName?: string;
-}
-
-export interface AppState {
+interface AppContextType {
   role: UserRole | null;
   userName: string;
   wasteItems: WasteItem[];
@@ -29,81 +24,95 @@ export interface AppState {
   totalCO2Saved: number;
   totalFarmersSupported: number;
   totalTransactions: number;
-}
-
-interface AppContextType extends AppState {
   setRole: (role: UserRole | null) => void;
   setUserName: (name: string) => void;
-  addWasteItem: (item: Omit<WasteItem, "id" | "status" | "createdAt">) => void;
-  buyItem: (id: string) => void;
-  confirmPickup: (id: string) => void;
-  classifyWaste: (category: string) => { score: number; suitable: string; verdict: string };
+  addWasteItem: (item: Omit<WasteItem, "id" | "status" | "createdAt" | "restaurantId">) => Promise<void>;
+  buyItem: (id: string) => Promise<void>;
+  confirmPickup: (id: string) => Promise<void>;
 }
 
-/* ── fake AI classification ────────────────────────────── */
-function classifyWaste(category: string) {
-  const rules: Record<string, { score: number; suitable: string; verdict: string }> = {
-    vegetable: { score: 95, suitable: "Pigs, Poultry, Cattle", verdict: "Safe — excellent for animal feed" },
-    grain:     { score: 92, suitable: "Poultry, Cattle", verdict: "Safe — rich in carbohydrates" },
-    bread:     { score: 88, suitable: "Pigs, Poultry", verdict: "Safe — good energy source" },
-    mixed:     { score: 74, suitable: "Pigs", verdict: "Moderate — needs sorting" },
-    dairy:     { score: 65, suitable: "Pigs (limited)", verdict: "Caution — check freshness" },
-    meat:      { score: 40, suitable: "Not recommended", verdict: "Unsafe — risk of contamination" },
-  };
-  return rules[category] || { score: 70, suitable: "Pigs", verdict: "Moderate" };
-}
-
-/* ── seed data ─────────────────────────────────────────── */
-const SEED_ITEMS: WasteItem[] = [
-  { id: "s1", restaurantName: "Himalayan Café", foodType: "Vegetable Rice Mix", category: "vegetable", weightKg: 15, safetyScore: 94, suitableFor: "Pigs, Poultry, Cattle", price: 150, distance: "1.2 km", imageUrl: "", status: "listed", createdAt: new Date(Date.now() - 3600000).toISOString() },
-  { id: "s2", restaurantName: "Kathmandu Kitchen", foodType: "Dal Bhat Leftovers", category: "grain", weightKg: 22, safetyScore: 91, suitableFor: "Poultry, Cattle", price: 200, distance: "2.5 km", imageUrl: "", status: "listed", createdAt: new Date(Date.now() - 7200000).toISOString() },
-  { id: "s3", restaurantName: "Newari Bhoj", foodType: "Bread & Roti", category: "bread", weightKg: 8, safetyScore: 88, suitableFor: "Pigs, Poultry", price: 80, distance: "0.8 km", imageUrl: "", status: "listed", createdAt: new Date(Date.now() - 10800000).toISOString() },
-  { id: "s4", restaurantName: "Everest Dine", foodType: "Mixed Curry Leftovers", category: "mixed", weightKg: 30, safetyScore: 76, suitableFor: "Pigs", price: 250, distance: "3.1 km", imageUrl: "", status: "listed", createdAt: new Date(Date.now() - 14400000).toISOString() },
-  { id: "s5", restaurantName: "Thamel Bites", foodType: "Fruit & Vegetable Scraps", category: "vegetable", weightKg: 12, safetyScore: 96, suitableFor: "Pigs, Poultry, Cattle", price: 120, distance: "1.8 km", imageUrl: "", status: "sold", createdAt: new Date(Date.now() - 86400000).toISOString(), buyerName: "Ram Thapa" },
-  { id: "s6", restaurantName: "Garden of Dreams Café", foodType: "Salad & Greens", category: "vegetable", weightKg: 18, safetyScore: 97, suitableFor: "Pigs, Poultry, Cattle", price: 160, distance: "0.5 km", imageUrl: "", status: "picked_up", createdAt: new Date(Date.now() - 172800000).toISOString(), buyerName: "Sita Gurung" },
-];
-
-/* ── provider ──────────────────────────────────────────── */
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [userName, setUserName] = useState("");
-  const [wasteItems, setWasteItems] = useState<WasteItem[]>(SEED_ITEMS);
+  const [wasteItems, setWasteItems] = useState<WasteItem[]>([]);
 
-  const totalWasteDiverted = wasteItems.filter(i => i.status !== "listed").reduce((s, i) => s + i.weightKg, 0) + 120;
+  // Real-time listener for waste listings
+  useEffect(() => {
+    const q = query(collection(db, "waste_listings"), orderBy("createdAt", "desc"), limit(50));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as WasteItem[];
+      setWasteItems(items);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const totalWasteDiverted = wasteItems
+    .filter((i) => i.status !== "listed")
+    .reduce((s, i) => s + i.weightKg, 0);
   const totalCO2Saved = totalWasteDiverted * 2.5;
-  const totalFarmersSupported = 8;
-  const totalTransactions = wasteItems.filter(i => i.status !== "listed").length + 14;
+  const totalFarmersSupported = 12; // Base number for hackathon
+  const totalTransactions = wasteItems.filter((i) => i.status !== "listed").length;
 
-  function addWasteItem(item: Omit<WasteItem, "id" | "status" | "createdAt">) {
-    const newItem: WasteItem = {
+  const addWasteItem = async (item: Omit<WasteItem, "id" | "status" | "createdAt" | "restaurantId">) => {
+    await addDoc(collection(db, "waste_listings"), {
       ...item,
-      id: "w" + Date.now(),
+      restaurantId: userName || "demo_restaurant", // Ideally from auth
       status: "listed",
-      createdAt: new Date().toISOString(),
-    };
-    setWasteItems(prev => [newItem, ...prev]);
-  }
+      createdAt: new Date().toISOString(), // Using string for consistency with previous type, but serverTimestamp is better
+    });
+  };
 
-  function buyItem(id: string) {
-    setWasteItems(prev =>
-      prev.map(i => (i.id === id ? { ...i, status: "sold" as const, buyerName: userName || "Anonymous Farmer" } : i))
-    );
-  }
+  const buyItem = async (id: string) => {
+    const itemRef = doc(db, "waste_listings", id);
+    await updateDoc(itemRef, {
+      status: "sold",
+      buyerName: userName || "Anonymous Farmer",
+    });
 
-  function confirmPickup(id: string) {
-    setWasteItems(prev =>
-      prev.map(i => (i.id === id ? { ...i, status: "picked_up" as const } : i))
-    );
-  }
+    // Create a transaction record
+    const item = wasteItems.find(i => i.id === id);
+    if (item) {
+      await addDoc(collection(db, "transactions"), {
+        listingId: id,
+        farmerName: userName || "Anonymous Farmer",
+        restaurantName: item.restaurantName,
+        weight: item.weightKg,
+        co2Saved: item.weightKg * 2.5,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      });
+    }
+  };
+
+  const confirmPickup = async (id: string) => {
+    const itemRef = doc(db, "waste_listings", id);
+    await updateDoc(itemRef, {
+      status: "picked_up",
+    });
+  };
 
   return (
-    <AppContext.Provider value={{
-      role, userName, wasteItems,
-      totalWasteDiverted, totalCO2Saved, totalFarmersSupported, totalTransactions,
-      setRole, setUserName, addWasteItem, buyItem, confirmPickup, classifyWaste,
-    }}>
+    <AppContext.Provider
+      value={{
+        role,
+        userName,
+        wasteItems,
+        totalWasteDiverted,
+        totalCO2Saved,
+        totalFarmersSupported,
+        totalTransactions,
+        setRole,
+        setUserName,
+        addWasteItem,
+        buyItem,
+        confirmPickup,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );

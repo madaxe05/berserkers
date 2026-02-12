@@ -2,16 +2,15 @@
 
 import { useApp } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
-import { ShoppingCart, MapPin, Scale, ShieldCheck, CheckCircle2, Camera, Truck, Package, Filter, Search, Leaf, Star, Clock } from "lucide-react";
+import { ShoppingCart, MapPin, Scale, ShieldCheck, CheckCircle2, Camera, Truck, Package, Search, Leaf, Star, Clock } from "lucide-react";
 import { useState } from "react";
+import { scoreColor, scoreBadge } from "@/lib/utils";
 
 export default function FarmerPage() {
     const { wasteItems, buyItem, confirmPickup, userName } = useApp();
     const [filter, setFilter] = useState("all");
     const [search, setSearch] = useState("");
-    const [buyingId, setBuyingId] = useState<string | null>(null);
-    const [pickupId, setPickupId] = useState<string | null>(null);
-    const [pickupDone, setPickupDone] = useState<Set<string>>(new Set());
+    const [processingId, setProcessingId] = useState<string | null>(null);
 
     const listedItems = wasteItems.filter(i => i.status === "listed" && i.safetyScore >= 60);
     const myPurchases = wasteItems.filter(i => (i.status === "sold" || i.status === "picked_up") && i.buyerName === userName);
@@ -22,25 +21,27 @@ export default function FarmerPage() {
         return true;
     });
 
-    function handleBuy(id: string) {
-        setBuyingId(id);
-        setTimeout(() => {
-            buyItem(id);
-            setBuyingId(null);
-        }, 1500);
+    async function handleBuy(id: string) {
+        setProcessingId(id);
+        try {
+            await buyItem(id);
+        } catch (error) {
+            console.error("Error buying item:", error);
+        } finally {
+            setProcessingId(null);
+        }
     }
 
-    function handlePickup(id: string) {
-        setPickupId(id);
-        setTimeout(() => {
-            confirmPickup(id);
-            setPickupDone(prev => new Set(prev).add(id));
-            setPickupId(null);
-        }, 1800);
+    async function handlePickup(id: string) {
+        setProcessingId(id);
+        try {
+            await confirmPickup(id);
+        } catch (error) {
+            console.error("Error confirming pickup:", error);
+        } finally {
+            setProcessingId(null);
+        }
     }
-
-    const scoreColor = (score: number) => score >= 80 ? "var(--accent-green)" : score >= 60 ? "var(--warning)" : "var(--danger)";
-    const scoreBadge = (score: number) => score >= 80 ? "badge-safe" : score >= 60 ? "badge-moderate" : "badge-unsafe";
 
     return (
         <div style={{ position: "relative", zIndex: 1, minHeight: "100vh" }}>
@@ -140,9 +141,9 @@ export default function FarmerPage() {
                                     <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", color: "var(--accent-green)" }}>Rs {item.price}</span>
                                     <span style={{ fontSize: 12, color: "var(--text-dim)", marginLeft: 4 }}>/ lot</span>
                                 </div>
-                                <button className="btn-primary" onClick={() => handleBuy(item.id)} disabled={buyingId === item.id}
-                                    style={{ padding: "10px 20px", fontSize: 14, opacity: buyingId === item.id ? 0.7 : 1, display: "flex", alignItems: "center", gap: 6 }}>
-                                    {buyingId === item.id ? "Processing..." : <><ShoppingCart size={16} /> Buy</>}
+                                <button className="btn-primary" onClick={() => handleBuy(item.id)} disabled={processingId === item.id}
+                                    style={{ padding: "10px 20px", fontSize: 14, opacity: processingId === item.id ? 0.7 : 1, display: "flex", alignItems: "center", gap: 6 }}>
+                                    {processingId === item.id ? "Processing..." : <><ShoppingCart size={16} /> Buy</>}
                                 </button>
                             </div>
                         </div>
@@ -179,9 +180,9 @@ export default function FarmerPage() {
                                             {item.status === "picked_up" ? "✓ Picked Up" : "Awaiting Pickup"}
                                         </div>
                                         {item.status === "sold" && (
-                                            <button className="btn-primary" onClick={() => handlePickup(item.id)} disabled={pickupId === item.id}
+                                            <button className="btn-primary" onClick={() => handlePickup(item.id)} disabled={processingId === item.id}
                                                 style={{ padding: "10px 20px", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                                                {pickupId === item.id ? "Confirming..." : <><Camera size={15} /> Confirm Pickup</>}
+                                                {processingId === item.id ? "Confirming..." : <><Camera size={15} /> Confirm Pickup</>}
                                             </button>
                                         )}
                                     </div>

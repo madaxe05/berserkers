@@ -2,11 +2,12 @@
 
 import { useApp } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
-import { Upload, Camera, CheckCircle2, AlertTriangle, XCircle, Leaf, Package, Scale, Sparkles, ArrowRight, Clock, BadgeCheck } from "lucide-react";
-import { useState, useRef } from "react";
+import { Upload, CheckCircle2, AlertTriangle, XCircle, Package, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { scoreColor, scoreBadge, classifyWasteLogic } from "@/lib/utils";
 
 export default function RestaurantPage() {
-    const { addWasteItem, classifyWaste, wasteItems, userName } = useApp();
+    const { addWasteItem, wasteItems, userName } = useApp();
 
     const [step, setStep] = useState<"upload" | "classify" | "result">("upload");
     const [foodType, setFoodType] = useState("");
@@ -19,43 +20,46 @@ export default function RestaurantPage() {
 
     const myItems = wasteItems.filter(i => i.restaurantName === userName);
 
-
     function handleClassify() {
         setClassifying(true);
         setStep("classify");
         // Simulate AI delay
         setTimeout(() => {
-            const r = classifyWaste(category);
+            const r = classifyWasteLogic(category);
             setResult(r);
             setClassifying(false);
             setStep("result");
         }, 2200);
     }
 
-    function handleSubmit() {
-        addWasteItem({
-            restaurantName: userName || "My Restaurant",
-            foodType: foodType || "Food Waste",
-            category: category as any,
-            weightKg: parseFloat(weight) || 10,
-            safetyScore: result?.score || 80,
-            suitableFor: result?.suitable || "Pigs",
-            price: parseFloat(price) || 100,
-            distance: (Math.random() * 4 + 0.3).toFixed(1) + " km",
-            imageUrl: "",
-        });
-        // Reset
-        setStep("upload");
-        setFoodType("");
-        setDescription("");
-        setCategory("vegetable");
-        setWeight("");
-        setPrice("");
-        setResult(null);
+    async function handleSubmit() {
+        try {
+            await addWasteItem({
+                restaurantName: userName || "My Restaurant",
+                foodType: foodType || "Food Waste",
+                description: description,
+                category: category as any,
+                weightKg: parseFloat(weight) || 10,
+                safetyScore: result?.score || 80,
+                suitableFor: result?.suitable || "Pigs",
+                price: parseFloat(price) || 100,
+                distance: (Math.random() * 4 + 0.3).toFixed(1) + " km",
+                imageUrl: "",
+            });
+            // Reset
+            setStep("upload");
+            setFoodType("");
+            setDescription("");
+            setCategory("vegetable");
+            setWeight("");
+            setPrice("");
+            setResult(null);
+        } catch (error) {
+            console.error("Error submitting listing:", error);
+            alert("Failed to submit listing. Please try again.");
+        }
     }
 
-    const scoreColor = (score: number) => score >= 80 ? "var(--accent-green)" : score >= 60 ? "var(--warning)" : "var(--danger)";
-    const scoreBadge = (score: number) => score >= 80 ? "badge-safe" : score >= 60 ? "badge-moderate" : "badge-unsafe";
     const ScoreIcon = ({ score }: { score: number }) =>
         score >= 80 ? <CheckCircle2 size={20} /> : score >= 60 ? <AlertTriangle size={20} /> : <XCircle size={20} />;
 
