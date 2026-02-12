@@ -9,11 +9,7 @@ export default function Home() {
   const router = useRouter();
 
   function login(role: "restaurant" | "farmer" | "admin") {
-    const names = { restaurant: "Himalayan Café", farmer: "Ram Thapa", admin: "Admin" };
-    setRole(role);
-    setUserName(names[role]);
-    const routes = { restaurant: "/restaurant", farmer: "/farmer", admin: "/dashboard" };
-    router.push(routes[role]);
+    router.push(`/login?role=${role}`);
   }
 
   return (

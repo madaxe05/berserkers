@@ -16,8 +16,8 @@ export default function Navbar() {
     }
 
     const navLinks: { label: string; href: string; icon: React.ReactNode; roles: UserRole[] }[] = [
-        { label: "Upload", href: "/restaurant", icon: <Store size={16} />, roles: ["restaurant", "admin"] },
-        { label: "Marketplace", href: "/farmer", icon: <Tractor size={16} />, roles: ["farmer", "admin"] },
+        { label: "Upload", href: "/restaurant", icon: <Store size={16} />, roles: ["restaurant"] },
+        { label: "Marketplace", href: "/farmer", icon: <Tractor size={16} />, roles: ["farmer"] },
         { label: "Dashboard", href: "/dashboard", icon: <BarChart3 size={16} />, roles: ["admin"] },
     ];
 

@@ -34,8 +34,28 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [role, setRole] = useState<UserRole | null>(null);
-  const [userName, setUserName] = useState("");
+  // Persist auth state
+  useEffect(() => {
+    const storedRole = localStorage.getItem("app_role") as UserRole | null;
+    const storedName = localStorage.getItem("app_userName");
+    if (storedRole) setRole(storedRole);
+    if (storedName) setUserName(storedName);
+  }, []);
+
+  const setRole = (r: UserRole | null) => {
+    _setRole(r);
+    if (r) localStorage.setItem("app_role", r);
+    else localStorage.removeItem("app_role");
+  };
+
+  const setUserName = (n: string) => {
+    _setUserName(n);
+    if (n) localStorage.setItem("app_userName", n);
+    else localStorage.removeItem("app_userName");
+  };
+
+  const [role, _setRole] = useState<UserRole | null>(null);
+  const [userName, _setUserName] = useState("");
   const [wasteItems, setWasteItems] = useState<WasteItem[]>([]);
 
   // Real-time listener for waste listings
@@ -51,12 +71,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const totalWasteDiverted = wasteItems
-    .filter((i) => i.status !== "listed")
-    .reduce((s, i) => s + i.weightKg, 0);
+  // Calculate stats dynamically
+  const soldOrPickedUp = wasteItems.filter((i) => i.status === "sold" || i.status === "picked_up");
+
+  const totalWasteDiverted = soldOrPickedUp.reduce((s, i) => s + Number(i.weightKg || 0), 0);
   const totalCO2Saved = totalWasteDiverted * 2.5;
-  const totalFarmersSupported = 12; // Base number for hackathon
-  const totalTransactions = wasteItems.filter((i) => i.status !== "listed").length;
+
+  // Count unique buyers (farmers)
+  const uniqueFarmers = new Set(soldOrPickedUp.map(i => i.buyerName).filter(Boolean));
+  const totalFarmersSupported = uniqueFarmers.size;
+
+  const totalTransactions = wasteItems.filter((i) => i.status === "picked_up").length;
 
   const addWasteItem = async (item: Omit<WasteItem, "id" | "status" | "createdAt" | "restaurantId">) => {
     await addDoc(collection(db, "waste_listings"), {
