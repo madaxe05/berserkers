@@ -113,16 +113,41 @@ export default function RestaurantPage() {
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                                         <div>
                                             <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 8, display: "block" }}>Weight (kg)</label>
-                                            <input className="input-field" type="number" placeholder="15" value={weight} onChange={e => setWeight(e.target.value)} />
+                                            <input
+                                                className="input-field"
+                                                type="number"
+                                                min="0"
+                                                placeholder="15"
+                                                value={weight}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    if (!val || parseFloat(val) >= 0) setWeight(val);
+                                                }}
+                                            />
                                         </div>
                                         <div>
                                             <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 8, display: "block" }}>Price (Rs)</label>
-                                            <input className="input-field" type="number" placeholder="150" value={price} onChange={e => setPrice(e.target.value)} />
+                                            <input
+                                                className="input-field"
+                                                type="number"
+                                                min="0"
+                                                placeholder="150"
+                                                value={price}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    if (!val || parseFloat(val) >= 0) setPrice(val);
+                                                }}
+                                            />
                                         </div>
                                     </div>
                                 </div>
 
-                                <button className="btn-primary" onClick={handleClassify} style={{ marginTop: 28, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                                <button
+                                    className="btn-primary"
+                                    onClick={handleClassify}
+                                    disabled={!foodType || !weight || !price || parseFloat(weight) <= 0}
+                                    style={{ marginTop: 28, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: (!foodType || !weight || !price || parseFloat(weight) <= 0) ? 0.6 : 1 }}
+                                >
                                     <Sparkles size={18} /> Check Safety with AI
                                 </button>
                             </>

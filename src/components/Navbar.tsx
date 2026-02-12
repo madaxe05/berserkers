@@ -17,7 +17,7 @@ export default function Navbar() {
     const navLinks: { label: string; href: string; icon: React.ReactNode; roles: UserRole[] }[] = [
         { label: "Upload", href: "/restaurant", icon: <Store size={16} />, roles: ["restaurant", "admin"] },
         { label: "Marketplace", href: "/farmer", icon: <Tractor size={16} />, roles: ["farmer", "admin"] },
-        { label: "Dashboard", href: "/dashboard", icon: <BarChart3 size={16} />, roles: ["restaurant", "farmer", "admin"] },
+        { label: "Dashboard", href: "/dashboard", icon: <BarChart3 size={16} />, roles: ["admin"] },
     ];
 
     const visibleLinks = navLinks.filter(l => role && l.roles.includes(role));
