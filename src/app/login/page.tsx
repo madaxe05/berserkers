@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useApp } from "@/context/AppContext";
 import { UserRole } from "@/lib/types";
@@ -18,21 +18,25 @@ function LoginForm() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [isRegistering, setIsRegistering] = useState(false);
 
     const selectedRole = roleParam || "restaurant";
 
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError("");
 
         try {
-            // Authenticate with Firebase
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            // Ensure user role matches the selected login type (simple validation for hackathon)
-            // In production, user roles would be stored in Firestore 'users' collection
+            let user;
+            if (isRegistering) {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                user = userCredential.user;
+                await updateProfile(user, { displayName: email.split("@")[0] });
+            } else {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                user = userCredential.user;
+            }
 
             // Update App Context
             setRole(selectedRole);
@@ -43,14 +47,24 @@ function LoginForm() {
             router.push(routes[selectedRole]);
 
         } catch (err: any) {
-            console.error("Login error:", err);
-            setError("Invalid email or password. Please try again.");
+            console.error("Auth error:", err);
+            // Simplify error messages for user
+            if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+                setError("Invalid email or password.");
+            } else if (err.code === 'auth/email-already-in-use') {
+                setError("Email already in use. Try logging in.");
+            } else if (err.code === 'auth/weak-password') {
+                setError("Password should be at least 6 characters.");
+            } else if (err.code === 'auth/network-request-failed') {
+                setError("Network error. Check your connection.");
+            } else {
+                setError(err.message || "Authentication failed. check console.");
+            }
         } finally {
             setLoading(false);
         }
     };
 
-    // Demo helper for hackathon judges
     const fillDemo = () => {
         setEmail("demo@anna-chain.com");
         setPassword("password123");
@@ -58,25 +72,21 @@ function LoginForm() {
 
     return (
         <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", padding: 20 }}>
-            {/* Background Particles (Optional: reuse from layout if global) */}
-
             <div className="glass animate-fade-in-up" style={{ width: "100%", maxWidth: 420, padding: 40, border: "1px solid var(--glass-border)", background: "var(--glass-bg)", borderRadius: 24, boxShadow: "0 20px 80px rgba(0,0,0,0.4)" }}>
 
-                {/* Header */}
                 <div style={{ textAlign: "center", marginBottom: 32 }}>
                     <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--gradient-green)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
                         <Recycle size={32} color="#0a0f0d" strokeWidth={2.5} />
                     </div>
                     <h1 style={{ fontSize: 28, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", marginBottom: 8 }}>
-                        Welcome Back
+                        {isRegistering ? "Create Account" : "Welcome Back"}
                     </h1>
                     <p style={{ color: "var(--text-dim)", fontSize: 14 }}>
-                        Login to continue as <span style={{ color: "var(--accent-green)", fontWeight: 600, textTransform: "capitalize" }}>{selectedRole}</span>
+                        {isRegistering ? "Sign up" : "Login"} as <span style={{ color: "var(--accent-green)", fontWeight: 600, textTransform: "capitalize" }}>{selectedRole}</span>
                     </p>
                 </div>
 
-                {/* Form */}
-                <form onSubmit={handleLogin} style={{ display: "grid", gap: 20 }}>
+                <form onSubmit={handleAuth} style={{ display: "grid", gap: 20 }}>
 
                     {error && (
                         <div className="animate-fade-in" style={{ padding: 12, borderRadius: 8, background: "rgba(239,68,68,0.1)", border: "1px solid var(--danger)", color: "var(--danger)", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
@@ -122,16 +132,25 @@ function LoginForm() {
                         className="btn-primary"
                         style={{ marginTop: 8, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
                     >
-                        {loading ? <Loader2 size={20} className="animate-spin" /> : <>Login to Dashboard <ArrowRight size={18} /></>}
+                        {loading ? <Loader2 size={20} className="animate-spin" /> : <>{isRegistering ? "Create Account" : "Login"} <ArrowRight size={18} /></>}
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={fillDemo}
-                        style={{ fontSize: 13, color: "var(--text-dim)", background: "transparent", border: "none", cursor: "pointer", textDecoration: "underline" }}
-                    >
-                        Use Demo Credentials (Hackathon Only)
-                    </button>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                        <button
+                            type="button"
+                            onClick={() => setIsRegistering(!isRegistering)}
+                            style={{ color: "var(--accent-green)", background: "transparent", border: "none", cursor: "pointer", fontWeight: 600 }}
+                        >
+                            {isRegistering ? "Back to Login" : "Need an account? Register"}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={fillDemo}
+                            style={{ color: "var(--text-dim)", background: "transparent", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                        >
+                            Use Demo
+                        </button>
+                    </div>
 
                 </form>
             </div>
