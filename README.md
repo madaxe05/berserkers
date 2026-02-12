@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Anna-Chain: Smart Food Waste Redistribution
 
-## Getting Started
+Anna-Chain is a circular economy platform designed for Nepal that connects restaurants with farmers to transform food waste into valuable animal feed. By streamlining this connection, we reduce methane emissions from landfills and provide affordable feed alternatives for the agricultural sector.
 
-First, run the development server:
+## 🚀 Vision
+Our mission is to build a sustainable, tech-driven food waste ecosystem that rewards restaurants for their environmental contribution and empowers farmers with high-quality resources.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🛠️ Core Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Restaurant Waste Upload**: A streamlined interface for restaurants to list food waste with detailed descriptions.
+- **AI-Powered Safety Verification**: Uses rule-based classification to verify waste safety for animal consumption based on food categories.
+- **Farmer Marketplace**: A real-time dashboard for farmers to browse, buy, and coordinate pickups of available feed.
+- **Impact Dashboard**: Visualizes environmental contributions including CO₂ saved, waste diverted, and trees equivalent.
+- **Green Rewards**: Track environmental impact and carbon credits earned by participants.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 💻 Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Frontend**: [Next.js](https://nextjs.org/) (App Router)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Design**: Premium Eco-Dark Glassmorphism
 
-## Learn More
+## 🚦 Getting Started
 
-To learn more about Next.js, take a look at the following resources:
+### Prerequisites
+- Node.js (Latest LTS recommended)
+- npm or yarn
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Installation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/madaxe05/berserkers.git
+   cd berserkers
+   ```
 
-## Deploy on Vercel
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## 🌍 Impact
+By diverting food waste from landfills, Anna-Chain helps reduce the significant methane footprint of urban food systems while supporting the local agricultural economy.
