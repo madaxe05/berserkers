@@ -1,7 +1,8 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
-import { Leaf, Store, Tractor, ShieldCheck, ArrowRight, Recycle, TrendingUp, Globe, Trees, Droplets, Flame, Car } from "lucide-react";
+import { Leaf, Store, Tractor, ShieldCheck, ArrowRight, Recycle, TrendingUp, Globe, Trees, Droplets, Car } from "lucide-react";
+import MethaneIcon from "@/components/MethaneIcon";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -124,7 +125,7 @@ export default function Home() {
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center" }}>
-                <Flame size={24} color="var(--accent-orange)" />
+                <MethaneIcon size={24} color="var(--accent-orange)" />
                 <div style={{ fontSize: 15, color: "var(--text-secondary)" }}>
                   <strong style={{ color: "var(--accent-orange)", fontSize: 18 }}>{(useApp().totalWasteDiverted * 0.54).toFixed(1)} kg</strong>
                   <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Methane Avoided</div>

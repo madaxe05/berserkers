@@ -14,7 +14,6 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { WasteItem, UserRole } from "@/lib/types";
-import { classifyWasteLogic } from "@/lib/utils";
 
 interface AppContextType {
   role: UserRole | null;

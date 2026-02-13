@@ -2,7 +2,7 @@
 
 import { useApp } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
-import { Leaf, Recycle, TrendingUp, Users, Activity, Zap, CheckCircle, Clock } from "lucide-react";
+import { Leaf, Recycle, TrendingUp, Users, Activity, Zap, CheckCircle, Clock, Star } from "lucide-react";
 import { calculateCO2 } from "@/lib/utils";
 
 export default function DashboardPage() {
@@ -241,7 +241,7 @@ export default function DashboardPage() {
                     <td style={{ padding: "16px", fontWeight: 600 }}>{r.name}</td>
                     <td style={{ padding: "16px", color: "var(--accent-green)" }}>{r.waste}</td>
                     <td style={{ padding: "16px" }}>
-                      <span style={{ color: "var(--accent-orange)", marginRight: 4 }}>★</span> {r.rating.toFixed(1)}
+                      <span style={{ color: "var(--accent-orange)", marginRight: 4, display: "inline-flex" }}><Star size={14} fill="var(--accent-orange)" /></span> {r.rating.toFixed(1)}
                     </td>
                     <td style={{ padding: "16px", textAlign: "right" }}>
                       <div style={{ display: "inline-block", padding: "4px 12px", borderRadius: 20, background: "rgba(34,197,94,0.1)", color: "var(--accent-green)", fontSize: 12, fontWeight: 600, border: "1px solid rgba(34,197,94,0.2)" }}>
