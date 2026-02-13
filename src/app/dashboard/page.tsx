@@ -95,22 +95,21 @@ export default function DashboardPage() {
 
             <div style={{ height: 200, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 8, paddingTop: 20 }}>
               {wasteByMonth.map((m, i) => (
-                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: 8, height: "100%" }}>
                   <div
                     className="bar-animate"
                     style={{
                       width: "100%",
                       maxWidth: 40,
-                      height: `${(m.waste / maxWasteMonth) * 100}%`,
-                      background: i === 6 ? "var(--accent-green)" : "rgba(34,197,94,0.2)",
+                      height: `${Math.max((m.waste / maxWasteMonth) * 160, m.waste > 0 ? 4 : 0)}px`,
+                      background: i === wasteByMonth.length - 1 ? "var(--accent-green)" : "rgba(34,197,94,0.2)",
                       borderRadius: "6px 6px 2px 2px",
                       position: "relative",
                       transition: "height 1s cubic-bezier(0.4, 0, 0.2, 1)"
                     }}
                   >
-                    {/* Tooltip on hover could go here, for now just simple numbers if needed or handled by cleanliness */}
                     {m.waste > 0 && (
-                      <div style={{ position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)", fontSize: 10, color: "var(--accent-green)", fontWeight: 700 }}>
+                      <div style={{ position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)", fontSize: 10, color: "var(--accent-green)", fontWeight: 700, whiteSpace: "nowrap" }}>
                         {m.waste}
                       </div>
                     )}
@@ -131,21 +130,21 @@ export default function DashboardPage() {
 
             <div style={{ height: 200, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 8, paddingTop: 20 }}>
               {wasteByMonth.map((m, i) => (
-                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: 8, height: "100%" }}>
                   <div
                     className="bar-animate"
                     style={{
                       width: "100%",
                       maxWidth: 40,
-                      height: `${(m.co2 / maxCO2Month) * 100}%`,
-                      background: i === 6 ? "var(--accent-emerald)" : "rgba(16,185,129,0.2)",
+                      height: `${Math.max((m.co2 / maxCO2Month) * 160, m.co2 > 0 ? 4 : 0)}px`,
+                      background: i === wasteByMonth.length - 1 ? "var(--accent-emerald)" : "rgba(16,185,129,0.2)",
                       borderRadius: "6px 6px 2px 2px",
                       position: "relative",
                       transition: "height 1s cubic-bezier(0.4, 0, 0.2, 1)"
                     }}
                   >
                     {m.co2 > 0 && (
-                      <div style={{ position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)", fontSize: 10, color: "var(--accent-emerald)", fontWeight: 700 }}>
+                      <div style={{ position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)", fontSize: 10, color: "var(--accent-emerald)", fontWeight: 700, whiteSpace: "nowrap" }}>
                         {m.co2.toFixed(0)}
                       </div>
                     )}

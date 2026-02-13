@@ -33,15 +33,15 @@ class CategoryRule:
     suitable: str
 
 CATEGORY_RULES: dict[str, CategoryRule] = {
-    "vegetable": CategoryRule(score=95, suitable="Pigs, Poultry, Cattle"),
-    "grain":     CategoryRule(score=92, suitable="Poultry, Cattle"),
-    "bread":     CategoryRule(score=88, suitable="Pigs, Poultry"),
-    "mixed":     CategoryRule(score=74, suitable="Pigs"),
-    "dairy":     CategoryRule(score=67, suitable="Pigs (limited)"),
-    "meat":      CategoryRule(score=40, suitable="Not recommended"),
+    "vegetable": CategoryRule(score=95, suitable="Pigs, Poultry, Cattle, Fish"),
+    "grain":     CategoryRule(score=92, suitable="Pigs, Poultry, Cattle, Fish"),
+    "bread":     CategoryRule(score=88, suitable="Pigs, Poultry, Fish"),
+    "mixed":     CategoryRule(score=74, suitable="Pigs, Poultry, Fish"),
+    "dairy":     CategoryRule(score=67, suitable="Pigs, Poultry(limited)"),
+    "meat":      CategoryRule(score=60, suitable="Pigs, Poultry"),
 }
 
-DEFAULT_RULE = CategoryRule(score=70, suitable="Pigs")
+DEFAULT_RULE = CategoryRule(score=70, suitable="Pigs, Poultry")
 
 # Keyword modifiers — use word-boundary regex patterns to avoid
 # false positives (e.g. "old" matching "cold" or "golden").

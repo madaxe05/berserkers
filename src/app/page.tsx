@@ -1,12 +1,12 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
-import { Leaf, Store, Tractor, ShieldCheck, ArrowRight, Recycle, TrendingUp, Globe, Trees, Droplets, Car } from "lucide-react";
+import { Leaf, Store, Tractor, ShieldCheck, ArrowRight, Recycle, TrendingUp, Globe, Trees, Droplets, Car, Star } from "lucide-react";
 import MethaneIcon from "@/components/MethaneIcon";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const { setRole, setUserName } = useApp();
+  const { setRole, setUserName, topRestaurants, totalWasteDiverted, totalCO2Saved, totalFarmersSupported } = useApp();
   const router = useRouter();
 
   function login(role: "restaurant" | "farmer" | "admin") {
@@ -91,9 +91,9 @@ export default function Home() {
       <section className="animate-fade-in stagger-5" style={{ padding: "40px 24px 48px" }}>
         <div style={{ maxWidth: 780, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 16 }}>
           {[
-            { icon: <Recycle size={20} />, label: "Waste Diverted", value: `${useApp().totalWasteDiverted.toFixed(0)} kg` },
-            { icon: <Leaf size={20} />, label: "CO₂ Saved", value: `${useApp().totalCO2Saved.toFixed(0)} kg` },
-            { icon: <Tractor size={20} />, label: "Farmers Helped", value: useApp().totalFarmersSupported.toString() },
+            { icon: <Recycle size={20} />, label: "Waste Diverted", value: `${totalWasteDiverted.toFixed(0)} kg` },
+            { icon: <Leaf size={20} />, label: "CO₂ Saved", value: `${totalCO2Saved.toFixed(0)} kg` },
+            { icon: <Tractor size={20} />, label: "Farmers Helped", value: totalFarmersSupported.toString() },
           ].map((s, i) => (
             <div key={i} className="glass-sm" style={{ padding: "20px 16px", textAlign: "center" }}>
               <div style={{ color: "var(--accent-green)", marginBottom: 8, display: "flex", justifyContent: "center" }}>{s.icon}</div>
@@ -104,6 +104,69 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Top Rated Restaurants ─────────────────────── */}
+      {topRestaurants.length > 0 && (
+        <section className="animate-fade-in stagger-5" style={{ padding: "0 24px 40px" }}>
+          <div style={{ maxWidth: 780, margin: "0 auto" }}>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 20, textAlign: "center" }}>
+              Top Rated Restaurants
+            </h4>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+              {topRestaurants.map((r, i) => (
+                <div key={i} className="glass" style={{ padding: "20px 20px 16px", position: "relative", overflow: "hidden" }}>
+                  {/* Rank badge */}
+                  <div style={{
+                    position: "absolute", top: 12, right: 12,
+                    width: 24, height: 24, borderRadius: 8,
+                    background: i === 0 ? "var(--accent-orange)" : i === 1 ? "#94a3b8" : i === 2 ? "#d97706" : "rgba(255,255,255,0.1)",
+                    color: i < 3 ? "#000" : "var(--text-dim)",
+                    fontSize: 11, fontWeight: 700, display: "grid", placeItems: "center"
+                  }}>
+                    {i + 1}
+                  </div>
+
+                  {/* Restaurant name */}
+                  <h5 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, paddingRight: 30 }}>{r.name}</h5>
+
+                  {/* Star rating */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 12 }}>
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <Star
+                        key={star}
+                        size={14}
+                        color="var(--accent-orange)"
+                        fill={star <= Math.round(r.rating) ? "var(--accent-orange)" : "transparent"}
+                        strokeWidth={star <= Math.round(r.rating) ? 0 : 1.5}
+                      />
+                    ))}
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--accent-orange)", marginLeft: 4 }}>
+                      {r.rating > 0 ? r.rating.toFixed(1) : "—"}
+                    </span>
+                    {r.count > 0 && (
+                      <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: 2 }}>
+                        ({r.count})
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Stats row */}
+                  <div style={{ display: "flex", gap: 12, fontSize: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--accent-green)" }}>
+                      <Recycle size={12} />
+                      <span style={{ fontWeight: 600 }}>{r.waste.toFixed(0)} kg</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--accent-emerald)" }}>
+                      <Leaf size={12} />
+                      <span style={{ fontWeight: 600 }}>{r.co2.toFixed(0)} CO₂</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── Environmental Equivalents ─────────────────── */}
       <section className="animate-fade-in stagger-6" style={{ padding: "0 24px 60px" }}>
         <div style={{ maxWidth: 780, margin: "0 auto" }}>
@@ -113,28 +176,28 @@ export default function Home() {
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center" }}>
                 <Trees size={24} color="var(--accent-green)" />
                 <div style={{ fontSize: 15, color: "var(--text-secondary)" }}>
-                  <strong style={{ color: "var(--accent-green)", fontSize: 18 }}>{(useApp().totalCO2Saved / 20).toFixed(0)}</strong>
+                  <strong style={{ color: "var(--accent-green)", fontSize: 18 }}>{(totalCO2Saved / 20).toFixed(0)}</strong>
                   <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Trees Planted</div>
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center" }}>
                 <Droplets size={24} color="var(--accent-cyan)" />
                 <div style={{ fontSize: 15, color: "var(--text-secondary)" }}>
-                  <strong style={{ color: "var(--accent-cyan)", fontSize: 18 }}>{(useApp().totalWasteDiverted * 8).toFixed(0)}L</strong>
+                  <strong style={{ color: "var(--accent-cyan)", fontSize: 18 }}>{(totalWasteDiverted * 8).toFixed(0)}L</strong>
                   <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Water Saved</div>
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center" }}>
                 <MethaneIcon size={24} color="var(--accent-orange)" />
                 <div style={{ fontSize: 15, color: "var(--text-secondary)" }}>
-                  <strong style={{ color: "var(--accent-orange)", fontSize: 18 }}>{(useApp().totalWasteDiverted * 0.54).toFixed(1)} kg</strong>
+                  <strong style={{ color: "var(--accent-orange)", fontSize: 18 }}>{(totalWasteDiverted * 0.54).toFixed(1)} kg</strong>
                   <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Methane Avoided</div>
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center" }}>
                 <Car size={24} color="var(--accent-emerald)" />
                 <div style={{ fontSize: 15, color: "var(--text-secondary)" }}>
-                  <strong style={{ color: "var(--accent-emerald)", fontSize: 18 }}>{(useApp().totalCO2Saved / 40).toFixed(1)}</strong>
+                  <strong style={{ color: "var(--accent-emerald)", fontSize: 18 }}>{(totalCO2Saved / 40).toFixed(1)}</strong>
                   <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Car-Days Offset</div>
                 </div>
               </div>

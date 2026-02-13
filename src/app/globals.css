@@ -20,6 +20,7 @@
   --danger: #ef4444;
   --warning: #f59e0b;
   --accent-orange: #f97316;
+  --accent-teal: #14b8a6;
   --gradient-green: linear-gradient(135deg, #22c55e, #10b981, #059669);
   --gradient-dark: linear-gradient(180deg, #0a0f0d 0%, #111a16 50%, #0d1512 100%);
   --glass-bg: rgba(20, 31, 26, 0.6);
@@ -349,6 +350,21 @@ input[type="number"] {
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+/* ── Bar chart animation ─────────────────────────────── */
+@keyframes growUp {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.bar-animate {
+  transform-origin: bottom;
+  animation: growUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .animate-count {

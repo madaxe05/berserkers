@@ -14,14 +14,14 @@ export const calculateCO2 = (weightKg: number) => (weightKg * 2.5).toFixed(1);
 
 // ── Category base rules (matching rule_classifier.py) ──
 const CATEGORY_RULES: Record<string, { score: number; suitable: string }> = {
-    vegetable: { score: 95, suitable: "Pigs, Poultry, Cattle" },
-    grain: { score: 92, suitable: "Poultry, Cattle" },
-    bread: { score: 88, suitable: "Pigs, Poultry" },
-    mixed: { score: 74, suitable: "Pigs" },
-    dairy: { score: 67, suitable: "Pigs (limited)" },
-    meat: { score: 40, suitable: "Not recommended" },
+    vegetable: { score: 95, suitable: "Pigs, Poultry, Cattle, Fish" },
+    grain: { score: 92, suitable: "Pigs, Poultry, Cattle, Fish" },
+    bread: { score: 88, suitable: "Pigs, Poultry, Fish" },
+    mixed: { score: 74, suitable: "Pigs, Poultry, Fish" },
+    dairy: { score: 67, suitable: "Pigs, Poultry(limited)" },
+    meat: { score: 60, suitable: "Pigs, Poultry" },
 };
-const DEFAULT_RULE = { score: 70, suitable: "Pigs" };
+const DEFAULT_RULE = { score: 70, suitable: "Pigs, Poultry" };
 
 // Word-boundary keyword patterns with score adjustments
 const POSITIVE_KW: [RegExp, number][] = [

@@ -36,6 +36,24 @@ export default function RestaurantPage() {
 
     const currentImage = customImage || DEFAULT_CATEGORY_IMAGES[category] || DEFAULT_CATEGORY_IMAGES.vegetable;
 
+    // Price suggestion based on category safety score and weight
+    const getSuggestedPrice = () => {
+        const w = parseFloat(weight);
+        if (!w || w <= 0) return null;
+        // Rate per kg based on category (higher safety = higher value)
+        const ratePerKg: Record<string, number> = {
+            meat: 100,      // High protein/value for pigs/dogs
+            dairy: 60,     // High value
+            mixed: 50,     // Common listing type
+            grain: 40,     // Starchy staples
+            bread: 30,      // Roti/Bread
+            vegetable: 30,  // Safer but more common
+        };
+        const rate = ratePerKg[category] || 6;
+        return Math.round(w * rate);
+    };
+    const suggestedPrice = getSuggestedPrice();
+
     function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -276,13 +294,33 @@ export default function RestaurantPage() {
                                             className="input-field"
                                             type="number"
                                             min="0"
-                                            placeholder="150"
+                                            placeholder={suggestedPrice ? `~${suggestedPrice}` : "150"}
                                             value={price}
                                             onChange={e => {
                                                 const val = e.target.value;
                                                 if (!val || parseFloat(val) >= 0) setPrice(val);
                                             }}
                                         />
+                                        {suggestedPrice && !price && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setPrice(suggestedPrice.toString())}
+                                                style={{
+                                                    marginTop: 6, padding: "4px 10px",
+                                                    background: "rgba(34,197,94,0.1)",
+                                                    border: "1px solid rgba(34,197,94,0.25)",
+                                                    borderRadius: 8, cursor: "pointer",
+                                                    fontSize: 11, fontWeight: 600,
+                                                    color: "var(--accent-green)",
+                                                    transition: "all 0.2s ease",
+                                                    display: "flex", alignItems: "center", gap: 4,
+                                                }}
+                                                onMouseEnter={e => { e.currentTarget.style.background = "rgba(34,197,94,0.2)"; }}
+                                                onMouseLeave={e => { e.currentTarget.style.background = "rgba(34,197,94,0.1)"; }}
+                                            >
+                                                Suggested: Rs {suggestedPrice} — click to apply
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
