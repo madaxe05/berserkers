@@ -2,9 +2,18 @@
 
 import { useApp } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
-import { Upload, CheckCircle2, AlertTriangle, XCircle, Package, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Upload, CheckCircle2, AlertTriangle, XCircle, Package, Sparkles, ChevronDown, ImagePlus, X, Camera } from "lucide-react";
+import { useState, useRef } from "react";
 import { scoreColor, scoreBadge, getBaseScore, getFoodTypeAdjustment, applyAdjustment, classifyWasteLogic } from "@/lib/utils";
+
+const DEFAULT_CATEGORY_IMAGES: Record<string, string> = {
+    vegetable: "/images/categories/vegetable.png",
+    grain: "/images/categories/grain.png",
+    bread: "/images/categories/bread.png",
+    mixed: "/images/categories/mixed.png",
+    dairy: "/images/categories/dairy.png",
+    meat: "/images/categories/meat.png",
+};
 
 export default function RestaurantPage() {
     const { addWasteItem, wasteItems, userName } = useApp();
@@ -21,6 +30,23 @@ export default function RestaurantPage() {
     const [categoryWeight, setCategoryWeight] = useState(0);
     const [foodTypeWeight, setFoodTypeWeight] = useState(0);
     const [descriptionWeight, setDescriptionWeight] = useState(0);
+    const [showBreakdown, setShowBreakdown] = useState(false);
+    const [customImage, setCustomImage] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const currentImage = customImage || DEFAULT_CATEGORY_IMAGES[category] || DEFAULT_CATEGORY_IMAGES.vegetable;
+
+    function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            alert("Image must be under 5MB");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => setCustomImage(reader.result as string);
+        reader.readAsDataURL(file);
+    }
 
     const myItems = wasteItems.filter(i => i.restaurantName === userName);
 
@@ -79,7 +105,7 @@ export default function RestaurantPage() {
                 suitableFor: result?.suitable || "Pigs",
                 price: parseFloat(price) || 100,
                 distance: (Math.random() * 4 + 0.3).toFixed(1) + " km",
-                imageUrl: "",
+                imageUrl: currentImage,
             });
             setStep("upload");
             setFoodType("");
@@ -87,6 +113,7 @@ export default function RestaurantPage() {
             setCategory("vegetable");
             setWeight("");
             setPrice("");
+            setCustomImage(null);
             setResult(null);
         } catch (error) {
             console.error("Error submitting listing:", error);
@@ -148,6 +175,83 @@ export default function RestaurantPage() {
                                     <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 6 }}>
                                         AI will analyze your description using rule-based classification.
                                     </p>
+                                </div>
+
+                                {/* Image Upload (Optional) */}
+                                <div style={{ marginBottom: 24 }}>
+                                    <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                                        <Camera size={14} /> Image <span style={{ fontWeight: 400, color: "var(--text-dim)" }}>(optional)</span>
+                                    </label>
+
+                                    <div style={{ display: "flex", gap: 16, alignItems: "start" }}>
+                                        {/* Preview */}
+                                        <div style={{
+                                            width: 140, height: 105, borderRadius: 12, overflow: "hidden",
+                                            border: customImage ? "2px solid var(--accent-green)" : "1px solid var(--border-color)",
+                                            flexShrink: 0, position: "relative",
+                                        }}>
+                                            <img
+                                                src={currentImage}
+                                                alt="Waste preview"
+                                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                            />
+                                            {!customImage && (
+                                                <div style={{
+                                                    position: "absolute", bottom: 0, left: 0, right: 0,
+                                                    padding: "4px 8px", fontSize: 10, fontWeight: 600,
+                                                    background: "rgba(0,0,0,0.6)", color: "var(--text-dim)",
+                                                    textAlign: "center", backdropFilter: "blur(4px)",
+                                                }}>Default</div>
+                                            )}
+                                            {customImage && (
+                                                <button
+                                                    onClick={() => { setCustomImage(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                                                    style={{
+                                                        position: "absolute", top: 4, right: 4,
+                                                        width: 22, height: 22, borderRadius: "50%",
+                                                        background: "rgba(0,0,0,0.7)", border: "none",
+                                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                                        cursor: "pointer", color: "white",
+                                                    }}
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Upload button */}
+                                        <div style={{ flex: 1 }}>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleImageUpload}
+                                                style={{ display: "none" }}
+                                                id="waste-image-upload"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                style={{
+                                                    width: "100%", padding: "14px 16px", borderRadius: 12,
+                                                    border: "1.5px dashed var(--border-color)",
+                                                    background: "rgba(255,255,255,0.02)",
+                                                    color: "var(--text-dim)", cursor: "pointer",
+                                                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                                                    fontSize: 13, fontWeight: 600,
+                                                    transition: "all 0.2s ease",
+                                                }}
+                                                onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent-green)"; e.currentTarget.style.color = "var(--accent-green)"; }}
+                                                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-color)"; e.currentTarget.style.color = "var(--text-dim)"; }}
+                                            >
+                                                <ImagePlus size={18} />
+                                                {customImage ? "Change Image" : "Upload Your Image"}
+                                            </button>
+                                            <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 6 }}>
+                                                Max 5MB • PNG, JPG, WebP
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Weight & Price (4th) */}
@@ -224,38 +328,63 @@ export default function RestaurantPage() {
                                     )}
                                 </div>
 
-                                {/* Score Breakdown */}
-                                <div className="glass-sm" style={{ padding: 20, marginBottom: 16 }}>
-                                    <h4 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 16, textTransform: "uppercase", letterSpacing: 1 }}>Score Breakdown</h4>
-                                    <div style={{ display: "grid", gap: 14 }}>
-                                        {/* Category */}
-                                        <div>
-                                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                                                <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Category ({category})</span>
-                                                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-green)", fontFamily: "'Space Grotesk', sans-serif" }}>{categoryWeight}</span>
+                                {/* Score Breakdown (Collapsible Dropdown) */}
+                                <div className="glass-sm" style={{ padding: 0, marginBottom: 16, overflow: "hidden" }}>
+                                    <button
+                                        onClick={() => setShowBreakdown(!showBreakdown)}
+                                        style={{
+                                            width: "100%", padding: "16px 20px",
+                                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                                            background: "transparent", border: "none", cursor: "pointer",
+                                            color: "var(--text-secondary)",
+                                        }}
+                                    >
+                                        <h4 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, margin: 0 }}>Score Breakdown</h4>
+                                        <ChevronDown
+                                            size={18}
+                                            color="var(--text-dim)"
+                                            style={{
+                                                transition: "transform 0.3s ease",
+                                                transform: showBreakdown ? "rotate(180deg)" : "rotate(0deg)",
+                                            }}
+                                        />
+                                    </button>
+                                    <div style={{
+                                        maxHeight: showBreakdown ? 300 : 0,
+                                        overflow: "hidden",
+                                        transition: "max-height 0.4s ease",
+                                        padding: showBreakdown ? "0 20px 20px" : "0 20px",
+                                    }}>
+                                        <div style={{ display: "grid", gap: 14 }}>
+                                            {/* Category */}
+                                            <div>
+                                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                                                    <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Category ({category})</span>
+                                                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-green)", fontFamily: "'Space Grotesk', sans-serif" }}>{categoryWeight}</span>
+                                                </div>
+                                                <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 10 }}>
+                                                    <div style={{ width: `${categoryWeight}%`, height: "100%", background: "var(--accent-green)", borderRadius: 10, transition: "width 0.8s ease" }} />
+                                                </div>
                                             </div>
-                                            <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 10 }}>
-                                                <div style={{ width: `${categoryWeight}%`, height: "100%", background: "var(--accent-green)", borderRadius: 10, transition: "width 0.8s ease" }} />
+                                            {/* Food Type */}
+                                            <div>
+                                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                                                    <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Food Type ({foodType || "—"})</span>
+                                                    <span style={{ fontSize: 13, fontWeight: 700, color: foodTypeWeight >= 0 ? "var(--accent-cyan)" : "var(--warning)", fontFamily: "'Space Grotesk', sans-serif" }}>{foodTypeWeight >= 0 ? "+" : ""}{foodTypeWeight}</span>
+                                                </div>
+                                                <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 10 }}>
+                                                    <div style={{ width: `${Math.min(100, Math.abs(foodTypeWeight) * 10)}%`, height: "100%", background: foodTypeWeight >= 0 ? "var(--accent-cyan)" : "var(--warning)", borderRadius: 10, transition: "width 0.8s ease" }} />
+                                                </div>
                                             </div>
-                                        </div>
-                                        {/* Food Type */}
-                                        <div>
-                                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                                                <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Food Type ({foodType || "—"})</span>
-                                                <span style={{ fontSize: 13, fontWeight: 700, color: foodTypeWeight >= 0 ? "var(--accent-cyan)" : "var(--warning)", fontFamily: "'Space Grotesk', sans-serif" }}>{foodTypeWeight >= 0 ? "+" : ""}{foodTypeWeight}</span>
-                                            </div>
-                                            <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 10 }}>
-                                                <div style={{ width: `${Math.min(100, Math.abs(foodTypeWeight) * 10)}%`, height: "100%", background: foodTypeWeight >= 0 ? "var(--accent-cyan)" : "var(--warning)", borderRadius: 10, transition: "width 0.8s ease" }} />
-                                            </div>
-                                        </div>
-                                        {/* AI Description */}
-                                        <div>
-                                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                                                <span style={{ fontSize: 13, color: "var(--text-dim)" }}>AI Description Analysis</span>
-                                                <span style={{ fontSize: 13, fontWeight: 700, color: descriptionWeight >= 0 ? "var(--accent-emerald)" : "var(--danger)", fontFamily: "'Space Grotesk', sans-serif" }}>{descriptionWeight >= 0 ? "+" : ""}{descriptionWeight}</span>
-                                            </div>
-                                            <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 10 }}>
-                                                <div style={{ width: `${Math.min(100, Math.abs(descriptionWeight) * 5)}%`, height: "100%", background: descriptionWeight >= 0 ? "var(--accent-emerald)" : "var(--danger)", borderRadius: 10, transition: "width 0.8s ease" }} />
+                                            {/* AI Description */}
+                                            <div>
+                                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                                                    <span style={{ fontSize: 13, color: "var(--text-dim)" }}>AI Description Analysis</span>
+                                                    <span style={{ fontSize: 13, fontWeight: 700, color: descriptionWeight >= 0 ? "var(--accent-emerald)" : "var(--danger)", fontFamily: "'Space Grotesk', sans-serif" }}>{descriptionWeight >= 0 ? "+" : ""}{descriptionWeight}</span>
+                                                </div>
+                                                <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 10 }}>
+                                                    <div style={{ width: `${Math.min(100, Math.abs(descriptionWeight) * 5)}%`, height: "100%", background: descriptionWeight >= 0 ? "var(--accent-emerald)" : "var(--danger)", borderRadius: 10, transition: "width 0.8s ease" }} />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

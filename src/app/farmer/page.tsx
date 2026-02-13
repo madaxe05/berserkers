@@ -4,10 +4,21 @@ import { useApp } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
 import {
     ShoppingCart, MapPin, Scale, ShieldCheck, CheckCircle2, Camera, Truck,
-    Package, Search, Leaf, Star, Clock, Salad, Wheat, CakeSlice, UtensilsCrossed
+    Package, Search, Leaf, Star, Clock, Salad, Wheat, CakeSlice, UtensilsCrossed,
+    X, AlertTriangle
 } from "lucide-react";
 import { useState } from "react";
 import { scoreColor, scoreBadge } from "@/lib/utils";
+import { WasteItem } from "@/lib/types";
+
+const DEFAULT_CATEGORY_IMAGES: Record<string, string> = {
+    vegetable: "/images/categories/vegetable.png",
+    grain: "/images/categories/grain.png",
+    bread: "/images/categories/bread.png",
+    mixed: "/images/categories/mixed.png",
+    dairy: "/images/categories/dairy.png",
+    meat: "/images/categories/meat.png",
+};
 
 export default function FarmerPage() {
     const { wasteItems, buyItem, confirmPickup, userName } = useApp();
@@ -15,6 +26,7 @@ export default function FarmerPage() {
     const [filter, setFilter] = useState("all");
     const [search, setSearch] = useState("");
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [confirmItem, setConfirmItem] = useState<WasteItem | null>(null);
 
     const listedItems = wasteItems.filter(i => i.status === "listed" && i.safetyScore >= 60);
     const myPurchases = wasteItems.filter(i => (i.status === "sold" || i.status === "picked_up") && i.buyerName === userName);
@@ -29,7 +41,7 @@ export default function FarmerPage() {
         setProcessingId(id);
         try { await buyItem(id); }
         catch (error) { console.error("Error buying item:", error); }
-        finally { setProcessingId(null); }
+        finally { setProcessingId(null); setConfirmItem(null); }
     }
 
     async function handlePickup(id: string) {
@@ -138,7 +150,7 @@ export default function FarmerPage() {
                                         <div>
                                             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                                                 <Star size={14} color="var(--warning)" fill="var(--warning)" />
-                                                <span style={{ fontSize: 12, color: "var(--text-dim)" }}>4.{Math.floor(Math.random() * 5 + 5)}</span>
+                                                <span style={{ fontSize: 12, color: "var(--text-dim)" }}>4.{(i % 5) + 5}</span>
                                             </div>
                                             <h3 style={{ fontSize: 16, fontWeight: 700 }}>{item.restaurantName}</h3>
                                         </div>
@@ -147,8 +159,12 @@ export default function FarmerPage() {
                                         </div>
                                     </div>
 
-                                    <div style={{ height: 120, borderRadius: 12, background: "linear-gradient(135deg, rgba(34,197,94,0.1), rgba(16,185,129,0.05))", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, border: "1px solid var(--border-color)" }}>
-                                        <Package size={32} color="var(--accent-green)" style={{ opacity: 0.5 }} />
+                                    <div style={{ height: 120, borderRadius: 12, overflow: "hidden", marginBottom: 16, border: "1px solid var(--border-color)" }}>
+                                        <img
+                                            src={item.imageUrl || DEFAULT_CATEGORY_IMAGES[item.category] || DEFAULT_CATEGORY_IMAGES.vegetable}
+                                            alt={item.foodType}
+                                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                        />
                                     </div>
 
                                     <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>{item.foodType}</p>
@@ -163,7 +179,7 @@ export default function FarmerPage() {
                                             <Leaf size={14} /> {item.suitableFor.split(",")[0]}
                                         </div>
                                         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text-dim)" }}>
-                                            <Clock size={14} /> {Math.floor(Math.random() * 3 + 1)}h ago
+                                            <Clock size={14} /> {(i % 3) + 1}h ago
                                         </div>
                                     </div>
 
@@ -172,9 +188,9 @@ export default function FarmerPage() {
                                             <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", color: "var(--accent-green)" }}>Rs {item.price}</span>
                                             <span style={{ fontSize: 12, color: "var(--text-dim)", marginLeft: 4 }}>/ lot</span>
                                         </div>
-                                        <button className="btn-primary" onClick={() => handleBuy(item.id)} disabled={processingId === item.id}
-                                            style={{ padding: "10px 20px", fontSize: 14, opacity: processingId === item.id ? 0.7 : 1, display: "flex", alignItems: "center", gap: 6 }}>
-                                            {processingId === item.id ? "Processing..." : <><ShoppingCart size={16} /> Buy</>}
+                                        <button className="btn-primary" onClick={() => setConfirmItem(item)}
+                                            style={{ padding: "10px 20px", fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                                            <ShoppingCart size={16} /> Buy
                                         </button>
                                     </div>
                                 </div>
@@ -230,6 +246,138 @@ export default function FarmerPage() {
                     </div>
                 )}
             </div>
+
+            {/* ── Purchase Confirmation Modal ── */}
+            {confirmItem && (
+                <div
+                    style={{
+                        position: "fixed", inset: 0, zIndex: 1000,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
+                        animation: "fadeIn 0.2s ease",
+                    }}
+                    onClick={() => setConfirmItem(null)}
+                >
+                    <div
+                        className="glass animate-fade-in-up"
+                        style={{
+                            width: "100%", maxWidth: 480, padding: 32,
+                            border: "1px solid var(--glass-border)",
+                            background: "var(--glass-bg)", borderRadius: 20,
+                            boxShadow: "0 20px 80px rgba(0,0,0,0.5)",
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(34,197,94,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <ShoppingCart size={22} color="var(--accent-green)" />
+                                </div>
+                                <div>
+                                    <h2 style={{ fontSize: 18, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif" }}>Confirm Purchase</h2>
+                                    <p style={{ fontSize: 12, color: "var(--text-dim)" }}>Review details before buying</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setConfirmItem(null)} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-color)", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--text-dim)", transition: "all 0.2s ease" }}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Product Details */}
+                        <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: 14, padding: 20, marginBottom: 20 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 16 }}>
+                                <div>
+                                    <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{confirmItem.foodType}</p>
+                                    <p style={{ fontSize: 13, color: "var(--text-dim)" }}>from {confirmItem.restaurantName}</p>
+                                </div>
+                                <div className={`badge ${scoreBadge(confirmItem.safetyScore)}`}>
+                                    <ShieldCheck size={12} /> {confirmItem.safetyScore}%
+                                </div>
+                            </div>
+
+                            {/* Item Image */}
+                            <div style={{ height: 140, borderRadius: 12, overflow: "hidden", marginBottom: 16, border: "1px solid var(--border-color)" }}>
+                                <img
+                                    src={confirmItem.imageUrl || DEFAULT_CATEGORY_IMAGES[confirmItem.category] || DEFAULT_CATEGORY_IMAGES.vegetable}
+                                    alt={confirmItem.foodType}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                            </div>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-secondary)", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10 }}>
+                                    <Scale size={15} color="var(--accent-cyan)" />
+                                    <div>
+                                        <div style={{ fontSize: 11, color: "var(--text-dim)" }}>Weight</div>
+                                        <div style={{ fontWeight: 600 }}>{confirmItem.weightKg} kg</div>
+                                    </div>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-secondary)", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10 }}>
+                                    <MapPin size={15} color="var(--accent-emerald)" />
+                                    <div>
+                                        <div style={{ fontSize: 11, color: "var(--text-dim)" }}>Distance</div>
+                                        <div style={{ fontWeight: 600 }}>{confirmItem.distance}</div>
+                                    </div>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-secondary)", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10 }}>
+                                    <Leaf size={15} color="var(--accent-green)" />
+                                    <div>
+                                        <div style={{ fontSize: 11, color: "var(--text-dim)" }}>Suitable For</div>
+                                        <div style={{ fontWeight: 600 }}>{confirmItem.suitableFor}</div>
+                                    </div>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-secondary)", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10 }}>
+                                    <Leaf size={15} color="var(--accent-lime)" />
+                                    <div>
+                                        <div style={{ fontSize: 11, color: "var(--text-dim)" }}>CO₂ Saved</div>
+                                        <div style={{ fontWeight: 600 }}>{(confirmItem.weightKg * 2.5).toFixed(1)} kg</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Price */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 12, marginBottom: 24 }}>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-secondary)" }}>Total Price</span>
+                            <span style={{ fontSize: 28, fontWeight: 900, fontFamily: "'Space Grotesk', sans-serif", color: "var(--accent-green)" }}>Rs {confirmItem.price}</span>
+                        </div>
+
+                        {/* Caution */}
+                        <div style={{ display: "flex", alignItems: "start", gap: 10, padding: "12px 16px", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 10, marginBottom: 24, fontSize: 12, color: "var(--warning)" }}>
+                            <AlertTriangle size={16} style={{ marginTop: 1, flexShrink: 0 }} />
+                            <span>By confirming, you agree to pick up this item from the restaurant. This action cannot be undone.</span>
+                        </div>
+
+                        {/* Buttons */}
+                        <div style={{ display: "flex", gap: 12 }}>
+                            <button
+                                onClick={() => setConfirmItem(null)}
+                                style={{
+                                    flex: 1, padding: "14px 20px", borderRadius: 12, fontSize: 14, fontWeight: 700,
+                                    border: "1px solid var(--border-color)", background: "transparent",
+                                    color: "var(--text-secondary)", cursor: "pointer", transition: "all 0.2s ease",
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="btn-primary"
+                                onClick={() => handleBuy(confirmItem.id)}
+                                disabled={processingId === confirmItem.id}
+                                style={{
+                                    flex: 2, padding: "14px 20px", fontSize: 14,
+                                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                                    opacity: processingId === confirmItem.id ? 0.7 : 1,
+                                }}
+                            >
+                                {processingId === confirmItem.id ? "Processing..." : <><CheckCircle2 size={18} /> Confirm Purchase</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
