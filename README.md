@@ -1,50 +1,46 @@
 # Anna-Chain: Smart Food Waste Redistribution
 
-Anna-Chain is a circular economy platform designed for Nepal that connects restaurants with farmers to transform food waste into valuable animal feed. By streamlining this connection, we reduce methane emissions from landfills and provide affordable feed alternatives for the agricultural sector.
+##  Team Information
 
-## 🚀 Vision
-Our mission is to build a sustainable, tech-driven food waste ecosystem that rewards restaurants for their environmental contribution and empowers farmers with high-quality resources.
+**Team Name:** Team Berserkers 
 
-## 🛠️ Core Features
+**Team Members:**  
+Sabal Gautam - sabal.078bct054@acem.edu.np - thesarez
+Samiksha Gurung - samiksha.078bct056@acem.edu.np - samikshagurung
+Sohan Dhungel - sohan.078bct070@acem.edu.np - madaxe05
+Tisa Shrestha - tisa.078bct086@acem.edu.np - tisashrestha  
 
-- **Restaurant Waste Upload**: A streamlined interface for restaurants to list food waste with detailed descriptions.
-- **AI-Powered Safety Verification**: Uses rule-based classification to verify waste safety for animal consumption based on food categories.
-- **Farmer Marketplace**: A real-time dashboard for farmers to browse, buy, and coordinate pickups of available feed.
-- **Impact Dashboard**: Visualizes environmental contributions including CO₂ saved, waste diverted, and trees equivalent.
-- **Green Rewards**: Track environmental impact and carbon credits earned by participants.
+## 📌 Project Details
 
-## 💻 Tech Stack
+**Project Title:** Anna-Chain: Smart Food Waste Redistribution  
 
-- **Frontend**: [Next.js](https://nextjs.org/) (App Router)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-- **Design**: Premium Eco-Dark Glassmorphism
+**Category:**  Open Innovation
 
-## 🚦 Getting Started
 
-### Prerequisites
-- Node.js (Latest LTS recommended)
-- npm or yarn
+### Problem Statement
 
-### Installation
+Food waste is a growing urban challenge in developing countries like Nepal. Restaurants,
+hotels, and food outlets generate large amounts of leftover food daily, most of which ends
+up in landfills. This creates multiple interconnected problems affecting the environment,
+economy, and governance
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/madaxe05/berserkers.git
-   cd berserkers
-   ```
+### Solution Overview
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+Anna-Chain is a circular economy web platform that connects restaurants generating food waste with farmers who need affordable animal feed. The system includes AI-assisted rule-based safety verification to ensure only suitable waste is redistributed. It provides an environmental impact dashboard showing CO₂ reduction, waste diverted, and carbon credits earned. Restaurants gain green rewards and sustainability recognition, while farmers access low-cost local feed.
 
-3. Run the development server:
-   ```bash
-   npm run dev
-   ```
+## 💻 Technical Stack
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+**Frontend:** React
+**Backend:** Firebase Functions 
+**Database:** Firebase Firestore  
+**Other Technologies:** Lucide React, Carbon Impact Calculator, Rule-Based Classification System  
 
-## 🌍 Impact
-By diverting food waste from landfills, Anna-Chain helps reduce the significant methane footprint of urban food systems while supporting the local agricultural economy.
+## ⚙ Installation & Setup
+
+Step-by-step instructions to run the project:
+
+```bash
+git clone https://github.com/madaxe05/berserkers.git
+cd berserkers
+npm install
+npm run dev
