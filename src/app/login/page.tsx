@@ -6,7 +6,7 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfi
 import { auth } from "@/lib/firebase";
 import { useApp } from "@/context/AppContext";
 import { UserRole } from "@/lib/types";
-import { Recycle, Lock, Mail, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
+import { Recycle, Lock, Mail, ArrowRight, AlertCircle, Loader2, Users } from "lucide-react";
 
 function LoginForm() {
     const router = useRouter();
@@ -14,6 +14,7 @@ function LoginForm() {
     const roleParam = searchParams.get("role") as UserRole | null;
     const { setRole, setUserName } = useApp();
 
+    const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -32,15 +33,18 @@ function LoginForm() {
             if (isRegistering) {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 user = userCredential.user;
-                await updateProfile(user, { displayName: email.split("@")[0] });
+                // Use the input name or fallback to email prefix
+                const displayName = name || email.split("@")[0];
+                await updateProfile(user, { displayName });
+                setUserName(displayName);
             } else {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 user = userCredential.user;
+                setUserName(user.displayName || email.split("@")[0]);
             }
 
             // Update App Context
             setRole(selectedRole);
-            setUserName(user.displayName || email.split("@")[0]);
 
             // Redirect
             const routes = { restaurant: "/restaurant", farmer: "/farmer", admin: "/dashboard" };
@@ -91,6 +95,24 @@ function LoginForm() {
                     {error && (
                         <div className="animate-fade-in" style={{ padding: 12, borderRadius: 8, background: "rgba(239,68,68,0.1)", border: "1px solid var(--danger)", color: "var(--danger)", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
                             <AlertCircle size={16} /> {error}
+                        </div>
+                    )}
+
+                    {isRegistering && (
+                        <div className="animate-fade-in">
+                            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 8 }}>Organization / Name</label>
+                            <div style={{ position: "relative" }}>
+                                <Users size={18} color="var(--text-dim)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
+                                <input
+                                    type="text"
+                                    required
+                                    className="input-field"
+                                    placeholder="e.g. Green Valley Farm"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    style={{ paddingLeft: 42 }}
+                                />
+                            </div>
                         </div>
                     )}
 

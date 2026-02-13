@@ -24,6 +24,10 @@ interface AppContextType {
   totalCO2Saved: number;
   totalFarmersSupported: number;
   totalTransactions: number;
+  wasteByMonth: { month: string; year: number; waste: number; co2: number }[];
+  wasteByCategory: { name: string; value: number }[];
+  listingStats: { active: number; sold: number; completed: number };
+  topRestaurants: { name: string; waste: number; co2: number; rating: number }[];
   setRole: (role: UserRole | null) => void;
   setUserName: (name: string) => void;
   addWasteItem: (item: Omit<WasteItem, "id" | "status" | "createdAt" | "restaurantId">) => Promise<void>;
@@ -83,10 +87,91 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const totalTransactions = wasteItems.filter((i) => i.status === "picked_up").length;
 
+  // --- New Aggregations for Dashboard ---
+
+  // 1. Waste by Month (Last 7 months)
+  const wasteByMonth = (() => {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const now = new Date();
+    // Initialize last 7 months
+    const stats = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (6 - i), 1);
+      return {
+        month: months[d.getMonth()],
+        year: d.getFullYear(),
+        waste: 0,
+        co2: 0,
+      };
+    });
+
+    soldOrPickedUp.forEach(item => {
+      const date = new Date(item.createdAt);
+      const monthIdx = date.getMonth();
+      const year = date.getFullYear();
+
+      const stat = stats.find(s => s.month === months[monthIdx] && s.year === year);
+      if (stat) {
+        stat.waste += Number(item.weightKg || 0);
+        stat.co2 += Number(item.weightKg || 0) * 2.5;
+      }
+    });
+
+    return stats;
+  })();
+
+  // 2. Waste by Category
+  const wasteByCategory = (() => {
+    const categories: Record<string, number> = {};
+    let total = 0;
+    soldOrPickedUp.forEach(item => {
+      const weight = Number(item.weightKg || 0);
+      categories[item.category] = (categories[item.category] || 0) + weight;
+      total += weight;
+    });
+
+    return Object.entries(categories)
+      .map(([name, weight]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value: total > 0 ? Math.round((weight / total) * 100) : 0
+      }))
+      .sort((a, b) => b.value - a.value);
+  })();
+
+  // 3. Listing Status
+  const listingStats = {
+    active: wasteItems.filter(i => i.status === "listed").length,
+    sold: wasteItems.filter(i => i.status === "sold").length,
+    completed: wasteItems.filter(i => i.status === "picked_up").length,
+  };
+
+  // 4. Top Restaurants
+  const topRestaurants = (() => {
+    const restStats: Record<string, { name: string, waste: number, co2: number, rating: number }> = {};
+
+    soldOrPickedUp.forEach(item => {
+      if (!restStats[item.restaurantName]) {
+        restStats[item.restaurantName] = {
+          name: item.restaurantName,
+          waste: 0,
+          co2: 0,
+          rating: 4.0 + Math.random() // Mock rating for now as it's not in DB
+        };
+      }
+      restStats[item.restaurantName].waste += Number(item.weightKg || 0);
+      restStats[item.restaurantName].co2 += Number(item.weightKg || 0) * 2.5;
+    });
+
+    return Object.values(restStats)
+      .sort((a, b) => b.waste - a.waste)
+      .slice(0, 5);
+  })();
+
+
   const addWasteItem = async (item: Omit<WasteItem, "id" | "status" | "createdAt" | "restaurantId">) => {
     await addDoc(collection(db, "waste_listings"), {
       ...item,
       restaurantId: userName || "demo_restaurant", // Ideally from auth
+      restaurantName: userName || "Demo Restaurant", // Store name denormalized
       status: "listed",
       createdAt: new Date().toISOString(), // Using string for consistency with previous type, but serverTimestamp is better
     });
@@ -97,6 +182,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await updateDoc(itemRef, {
       status: "sold",
       buyerName: userName || "Anonymous Farmer",
+      buyerId: userName || "farmer_id",
     });
 
     // Create a transaction record
@@ -131,6 +217,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         totalCO2Saved,
         totalFarmersSupported,
         totalTransactions,
+        wasteByMonth,
+        wasteByCategory,
+        listingStats,
+        topRestaurants,
         setRole,
         setUserName,
         addWasteItem,

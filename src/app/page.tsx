@@ -1,7 +1,7 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
-import { Leaf, Store, Tractor, ShieldCheck, ArrowRight, Recycle, TrendingUp, Globe } from "lucide-react";
+import { Leaf, Store, Tractor, ShieldCheck, ArrowRight, Recycle, TrendingUp, Globe, Trees, Droplets, Flame, Car } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -100,6 +100,45 @@ export default function Home() {
               <div style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>{s.label}</div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── Environmental Equivalents ─────────────────── */}
+      <section className="animate-fade-in stagger-6" style={{ padding: "0 24px 60px" }}>
+        <div style={{ maxWidth: 780, margin: "0 auto" }}>
+          <div className="glass" style={{ padding: 32 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 24, textAlign: "center" }}>Our Impact</h4>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 24 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center" }}>
+                <Trees size={24} color="var(--accent-green)" />
+                <div style={{ fontSize: 15, color: "var(--text-secondary)" }}>
+                  <strong style={{ color: "var(--accent-green)", fontSize: 18 }}>{(useApp().totalCO2Saved / 20).toFixed(0)}</strong>
+                  <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Trees Planted</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center" }}>
+                <Droplets size={24} color="var(--accent-cyan)" />
+                <div style={{ fontSize: 15, color: "var(--text-secondary)" }}>
+                  <strong style={{ color: "var(--accent-cyan)", fontSize: 18 }}>{(useApp().totalWasteDiverted * 8).toFixed(0)}L</strong>
+                  <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Water Saved</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center" }}>
+                <Flame size={24} color="var(--accent-orange)" />
+                <div style={{ fontSize: 15, color: "var(--text-secondary)" }}>
+                  <strong style={{ color: "var(--accent-orange)", fontSize: 18 }}>{(useApp().totalWasteDiverted * 0.54).toFixed(1)} kg</strong>
+                  <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Methane Avoided</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center" }}>
+                <Car size={24} color="var(--accent-emerald)" />
+                <div style={{ fontSize: 15, color: "var(--text-secondary)" }}>
+                  <strong style={{ color: "var(--accent-emerald)", fontSize: 18 }}>{(useApp().totalCO2Saved / 40).toFixed(1)}</strong>
+                  <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Car-Days Offset</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
