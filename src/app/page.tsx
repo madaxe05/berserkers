@@ -20,9 +20,9 @@ export default function Home() {
       <section style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 24px 40px" }}>
         <div style={{ maxWidth: 900, textAlign: "center" }}>
           {/* Logo mark */}
-          <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 36 }}>
-            <Image src="/images/logo.png" alt="Anna-Chain Logo" width={180} height={180} style={{ borderRadius: 16 }} priority />
-            <span style={{ fontSize: 30, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.03em" }}>
+          <div className="animate-fade-in" style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 36 }}>
+            <span style={{ fontSize: 30, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.03em", position: "relative", display: "inline-flex", alignItems: "center" }}>
+              <Image src="/images/logo.png" alt="Anna-Chain Logo" width={180} height={180} style={{ borderRadius: 16, position: "absolute", right: "calc(100% + 18px)" }} priority />
               <span className="gradient-text">Anna</span><span style={{ color: "var(--text-primary)" }}>-Chain</span>
             </span>
           </div>
