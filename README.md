@@ -2,7 +2,7 @@
 
 ---
 
-## 👥 Team Information
+##  Team Information
 
 **Team Name:** Team Berserkers  
 
@@ -15,7 +15,7 @@ Tisa Shrestha - tisa.078bct086@acem.edu.np - tisashrestha
 
 ---
 
-## 📌 Project Details
+##  Project Details
 
 **Project Title:** Anna-Chain: Smart Food Waste Redistribution  
 
@@ -35,7 +35,7 @@ Anna-Chain is a circular economy web platform that connects restaurants generati
 
 ---
 
-## 💻 Technical Stack
+##  Technical Stack
 
 **Frontend:** React  
 
@@ -43,11 +43,13 @@ Anna-Chain is a circular economy web platform that connects restaurants generati
 
 **Database:** Firebase Firestore  
 
-**Other Technologies:** Lucide React, Carbon Impact Calculator, Rule-Based Classification System  
+**Authentication:** Firebase
+
+**Other Technologies:** Python, Rule based classifier
 
 ---
 
-## ⚙ Installation & Setup
+##  Installation & Setup
 
 Step-by-step instructions to run the project:
 
