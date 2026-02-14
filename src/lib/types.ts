@@ -17,6 +17,7 @@ export interface WasteItem {
     createdAt: string;
     buyerId?: string;
     buyerName?: string;
+    paymentMethod?: "cod" | "online";
 }
 
 export interface Transaction {
@@ -29,4 +30,15 @@ export interface Transaction {
     status: "pending" | "completed";
     createdAt: string;
     completedAt?: string;
+}
+
+export interface Review {
+    id: string;
+    restaurantId: string; // The restaurant being reviewed
+    farmerId: string;     // The farmer who reviewed
+    farmerName: string;
+    listingId: string;    // The specific transaction item
+    rating: number;       // 1-5
+    comment: string;
+    createdAt: string;
 }

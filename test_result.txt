@@ -1,0 +1,14 @@
+STDOUT:
+{
+  "category": "vegetable",
+  "food_type": "Carrot",
+  "description": "fresh organic carrots from morning prep",
+  "score": 100,
+  "suitable": "Pigs, Poultry, Cattle, Fish",
+  "verdict": "Safe \u2014 excellent for animal feed",
+  "risk_level": "safe",
+  "ai_adjustment": 0,
+  "ai_reasoning": "AI analysis failed: HTTP Error 429: Too Many Requests"
+}
+
+STDERR:

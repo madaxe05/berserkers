@@ -3,10 +3,12 @@
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import { useApp } from "@/context/AppContext";
 import { UserRole } from "@/lib/types";
-import { Recycle, Lock, Mail, ArrowRight, AlertCircle, Loader2, Users } from "lucide-react";
+import { Lock, Mail, ArrowRight, AlertCircle, Loader2, Users } from "lucide-react";
+import Image from "next/image";
 
 function LoginForm() {
     const router = useRouter();
@@ -23,36 +25,60 @@ function LoginForm() {
 
     const selectedRole = roleParam || "restaurant";
 
-    const handleAuth = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleAuth = async (e?: React.FormEvent, overrideEmail?: string, overridePassword?: string) => {
+        if (e) e.preventDefault();
         setLoading(true);
         setError("");
+
+        const authEmail = overrideEmail || email;
+        const authPassword = overridePassword || password;
 
         try {
             let user;
             if (isRegistering) {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const userCredential = await createUserWithEmailAndPassword(auth, authEmail, authPassword);
                 user = userCredential.user;
-                // Use the input name or fallback to email prefix
-                const displayName = name || email.split("@")[0];
+                const displayName = name || authEmail.split("@")[0];
                 await updateProfile(user, { displayName });
                 setUserName(displayName);
+
+                // Store role in Firestore so this account is locked to this role
+                await setDoc(doc(db, "users", user.uid), {
+                    email: authEmail,
+                    displayName,
+                    role: selectedRole,
+                    createdAt: new Date().toISOString(),
+                });
             } else {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const userCredential = await signInWithEmailAndPassword(auth, authEmail, authPassword);
                 user = userCredential.user;
-                setUserName(user.displayName || email.split("@")[0]);
+
+                // Check stored role — must match selected role (admin exempt)
+                if (selectedRole !== "admin") {
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists()) {
+                        const storedRole = userDoc.data().role;
+                        if (storedRole && storedRole !== selectedRole) {
+                            await auth.signOut();
+                            setError(`This account is registered as "${storedRole}". Please select the correct role.`);
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                }
+
+                setUserName(user.displayName || authEmail.split("@")[0]);
             }
 
             // Update App Context
             setRole(selectedRole);
 
             // Redirect
-            const routes = { restaurant: "/restaurant", farmer: "/farmer", admin: "/dashboard" };
+            const routes: Record<string, string> = { restaurant: "/restaurant", farmer: "/farmer", admin: "/dashboard" };
             router.push(routes[selectedRole]);
 
         } catch (err: any) {
             console.error("Auth error:", err);
-            // Simplify error messages for user
             if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
                 setError("Invalid email or password.");
             } else if (err.code === 'auth/email-already-in-use') {
@@ -62,16 +88,61 @@ function LoginForm() {
             } else if (err.code === 'auth/network-request-failed') {
                 setError("Network error. Check your connection.");
             } else {
-                setError(err.message || "Authentication failed. check console.");
+                setError(err.message || "Authentication failed. Check console.");
             }
         } finally {
             setLoading(false);
         }
     };
 
-    const fillDemo = () => {
-        setEmail("demo@anna-chain.com");
-        setPassword("password123");
+    const fillDemo = async () => {
+        const demoEmail = "demo@anna-chain.com";
+        const demoPassword = "password123";
+        setEmail(demoEmail);
+        setPassword(demoPassword);
+        setLoading(true);
+        setError("");
+
+        try {
+            // Try signing in first
+            const userCredential = await signInWithEmailAndPassword(auth, demoEmail, demoPassword);
+            const user = userCredential.user;
+
+            // For demo accounts, skip role check — allow any role
+            setUserName(user.displayName || "Demo User");
+            setRole(selectedRole);
+            const routes: Record<string, string> = { restaurant: "/restaurant", farmer: "/farmer", admin: "/dashboard" };
+            router.push(routes[selectedRole]);
+        } catch (signInErr: any) {
+            // If account doesn't exist, create it
+            if (signInErr.code === 'auth/invalid-credential' || signInErr.code === 'auth/user-not-found') {
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, demoEmail, demoPassword);
+                    const user = userCredential.user;
+                    await updateProfile(user, { displayName: "Demo User" });
+
+                    await setDoc(doc(db, "users", user.uid), {
+                        email: demoEmail,
+                        displayName: "Demo User",
+                        role: "demo",
+                        createdAt: new Date().toISOString(),
+                    });
+
+                    setUserName("Demo User");
+                    setRole(selectedRole);
+                    const routes: Record<string, string> = { restaurant: "/restaurant", farmer: "/farmer", admin: "/dashboard" };
+                    router.push(routes[selectedRole]);
+                } catch (createErr: any) {
+                    console.error("Demo account creation error:", createErr);
+                    setError("Failed to create demo account. Please try again.");
+                }
+            } else {
+                console.error("Demo login error:", signInErr);
+                setError("Demo login failed. Please try again.");
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -79,9 +150,7 @@ function LoginForm() {
             <div className="glass animate-fade-in-up" style={{ width: "100%", maxWidth: 420, padding: 40, border: "1px solid var(--glass-border)", background: "var(--glass-bg)", borderRadius: 24, boxShadow: "0 20px 80px rgba(0,0,0,0.4)" }}>
 
                 <div style={{ textAlign: "center", marginBottom: 32 }}>
-                    <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--gradient-green)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                        <Recycle size={32} color="#0a0f0d" strokeWidth={2.5} />
-                    </div>
+                    <Image src="/images/logo.png" alt="Anna-Chain Logo" width={160} height={160} style={{ borderRadius: 16, marginBottom: 16 }} priority />
                     <h1 style={{ fontSize: 28, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", marginBottom: 8 }}>
                         {isRegistering ? "Create Account" : "Welcome Back"}
                     </h1>
@@ -168,9 +237,10 @@ function LoginForm() {
                         <button
                             type="button"
                             onClick={fillDemo}
-                            style={{ color: "var(--text-dim)", background: "transparent", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                            disabled={loading}
+                            style={{ color: "var(--text-dim)", background: "transparent", border: "none", cursor: "pointer", textDecoration: "underline", opacity: loading ? 0.5 : 1 }}
                         >
-                            Use Demo
+                            {loading ? "Loading..." : "Use Demo"}
                         </button>
                     </div>
 

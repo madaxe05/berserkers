@@ -2,8 +2,9 @@
 
 import { useApp } from "@/context/AppContext";
 import { UserRole } from "@/lib/types";
-import { Recycle, Store, Tractor, BarChart3, LogOut, Leaf } from "lucide-react";
+import { Store, Tractor, BarChart3, LogOut, Leaf } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
 
 export default function Navbar() {
     const { role, userName, setRole } = useApp();
@@ -28,9 +29,7 @@ export default function Navbar() {
             <div className="container-app" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
                 {/* Logo */}
                 <button onClick={() => router.push("/")} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", color: "var(--text-primary)" }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--gradient-green)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Recycle size={20} color="#0a0f0d" strokeWidth={2.5} />
-                    </div>
+                    <Image src="/images/logo.png" alt="Anna-Chain Logo" width={54} height={54} style={{ borderRadius: 8 }} priority />
                     <span style={{ fontSize: 18, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.03em" }}>
                         <span className="gradient-text">Anna</span>-Chain
                     </span>

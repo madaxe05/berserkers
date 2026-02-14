@@ -1,0 +1,281 @@
+"""
+Rule-Based Food Waste Classifier for Anna-Chain
+Classifies food waste items and calculates safety scores
+based on category, food type keywords, and description analysis.
+"""
+
+import argparse
+import json
+import os
+import re
+import urllib.request
+import urllib.error
+from dataclasses import dataclass, asdict
+from typing import Optional
+
+
+# ── Gemini Prompt ───────────────────────────────────────────────
+
+GEMINI_SYSTEM_PROMPT = """You are a food safety analyst for animal feed. Given a waste description and a base safety score (0-100), analyze the description and return a JSON adjustment.
+
+Consider:
+- Freshness indicators (fresh, refrigerated, sealed → positive)
+- Spoilage indicators (moldy, rotten, expired, smelly → negative)
+- Contamination risks (chemicals, plastic, mixed with non-food → very negative)
+- Storage conditions mentioned
+- Hygiene indicators
+
+Return ONLY valid JSON, no markdown, no explanation:
+{"adjustment": <number from -30 to +10>, "reasoning": "<one sentence>"}"""
+
+
+# ── Data Classes ────────────────────────────────────────────────
+
+@dataclass
+class ClassificationResult:
+    category: str
+    food_type: str
+    description: str
+    score: int
+    suitable: str
+    verdict: str
+    risk_level: str  # "safe", "moderate", "unsafe"
+
+
+# ── Rule Definitions ────────────────────────────────────────────
+
+# Base scores per waste category
+@dataclass
+class CategoryRule:
+    score: int
+    suitable: str
+
+CATEGORY_RULES: dict[str, CategoryRule] = {
+    "vegetable": CategoryRule(score=95, suitable="Pigs, Poultry, Cattle, Fish"),
+    "grain":     CategoryRule(score=92, suitable="Pigs, Poultry, Cattle, Fish"),
+    "bread":     CategoryRule(score=88, suitable="Pigs, Poultry, Fish"),
+    "mixed":     CategoryRule(score=74, suitable="Pigs, Poultry, Fish"),
+    "dairy":     CategoryRule(score=67, suitable="Pigs, Poultry(limited)"),
+    "meat":      CategoryRule(score=60, suitable="Pigs, Poultry"),
+}
+
+DEFAULT_RULE = CategoryRule(score=70, suitable="Pigs, Poultry")
+
+# Keyword modifiers — use word-boundary regex patterns to avoid
+# false positives (e.g. "old" matching "cold" or "golden").
+POSITIVE_KEYWORDS: list[tuple[str, int]] = [
+    (r"\bfresh\b",        5),
+    (r"\bclean\b",        3),
+    (r"\borganic\b",      5),
+    (r"\bprep scraps?\b", 2),
+    (r"\braw\b",          2),
+    (r"\buncooked\b",     2),
+    (r"\bmorning\b",      1),
+    (r"\bhygienic\b",     3),
+    (r"\brefrigerated\b", 4),
+    (r"\bcooled\b",       2),
+    (r"\bsorted\b",       2),
+    (r"\bsealed\b",       3),
+]
+
+NEGATIVE_KEYWORDS: list[tuple[str, int]] = [
+    (r"\bexpired?\b",     -30),
+    (r"\bsmelly\b",       -20),
+    (r"\bmold(?:y|ed)\b", -40),
+    (r"\bspoil(?:ed|t)?\b", -25),
+    (r"\bold\b",          -10),
+    (r"\bleftover\b",      -5),
+    (r"\bstale\b",        -15),
+    (r"\bsour\b",         -20),
+    (r"\brotten\b",       -35),
+    (r"\bcontaminat\w*\b", -30),
+    (r"\bferment\w*\b",   -15),
+    (r"\bunhygienic\b",   -20),
+]
+
+# Suitability downgrade table — when score drops, narrow the audience
+SUITABILITY_OVERRIDES: list[tuple[int, Optional[str]]] = [
+    (80, None),           # keep original suitability
+    (60, "Pigs (limited)"),
+    (0,  "Not recommended"),
+]
+
+
+# ── Pre-compile regex patterns once ─────────────────────────────
+
+_POSITIVE_RE = [(re.compile(pat, re.IGNORECASE), adj) for pat, adj in POSITIVE_KEYWORDS]
+_NEGATIVE_RE = [(re.compile(pat, re.IGNORECASE), adj) for pat, adj in NEGATIVE_KEYWORDS]
+
+
+# ── Gemini AI Analysis ──────────────────────────────────────────
+
+def gemini_analyze(description: str, base_score: int, api_key: str) -> dict:
+    """
+    Call Gemini 2.0 Flash to get an AI-based score adjustment.
+
+    Returns:
+        {"adjustment": int, "reasoning": str}
+        Falls back to {"adjustment": 0, "reasoning": "..."} on any error.
+    """
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/"
+        f"models/gemini-2.0-flash:generateContent?key={api_key}"
+    )
+    payload = json.dumps({
+        "contents": [{
+            "parts": [{
+                "text": (
+                    f"Base safety score: {base_score}/100\n"
+                    f'Waste description: "{description}"\n\n'
+                    "Analyze and return the JSON adjustment."
+                )
+            }]
+        }],
+        "systemInstruction": {
+            "parts": [{"text": GEMINI_SYSTEM_PROMPT}]
+        },
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 150,
+            "responseMimeType": "application/json",
+        },
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode())
+        text = data.get("candidates", [{}])[0] \
+                    .get("content", {}) \
+                    .get("parts", [{}])[0] \
+                    .get("text", "{}")
+        parsed = json.loads(text)
+        adjustment = max(-30, min(10, int(parsed.get("adjustment", 0))))
+        reasoning = str(parsed.get("reasoning", "AI analysis complete"))
+        return {"adjustment": adjustment, "reasoning": reasoning}
+    except (urllib.error.URLError, json.JSONDecodeError, KeyError, Exception) as exc:
+        return {"adjustment": 0, "reasoning": f"AI analysis failed: {exc}"}
+
+
+# ── Classification Logic ────────────────────────────────────────
+
+def classify_waste(
+    category: str,
+    food_type: str,
+    description: str,
+    weight_kg: Optional[float] = None,
+    api_key: Optional[str] = None,
+) -> ClassificationResult:
+    """
+    Classify a food waste item and return a safety score.
+
+    Args:
+        category:    One of vegetable, grain, bread, mixed, dairy, meat.
+        food_type:   Specific food name (e.g. "Carrot", "Rice").
+        description: Free-text description of the waste condition.
+        weight_kg:   Optional weight — large batches get a small penalty
+                     because inconsistent quality is more likely.
+
+    Returns:
+        ClassificationResult with score clamped to [0, 100].
+    """
+    cat = category.strip().lower()
+    rule = CATEGORY_RULES.get(cat, DEFAULT_RULE)
+    score: int = rule.score
+    base_suitable: str = rule.suitable
+
+    # ── Keyword adjustments ──
+    desc = description.lower()
+    pos_adj: int = sum(adj for pattern, adj in _POSITIVE_RE if pattern.search(desc))
+    neg_adj: int = sum(adj for pattern, adj in _NEGATIVE_RE if pattern.search(desc))
+    weight_penalty: int = -3 if (weight_kg is not None and weight_kg > 50) else 0
+
+    # ── Apply rule-based adjustments & clamp ──
+    score = max(0, min(100, score + pos_adj + neg_adj + weight_penalty))
+
+    # ── AI adjustment (if API key provided) ──
+    ai_result: Optional[dict] = None
+    if api_key:
+        ai_result = gemini_analyze(description, score, api_key)
+        score = max(0, min(100, score + ai_result["adjustment"]))
+
+    # ── Determine risk level & verdict ──
+    if score >= 80:
+        risk_level = "safe"
+        verdict = "Safe — excellent for animal feed"
+    elif score >= 60:
+        risk_level = "moderate"
+        verdict = "Moderate — needs quality check"
+    else:
+        risk_level = "unsafe"
+        verdict = "Unsafe — not suitable for redistribution"
+
+    # ── Override suitability if score dropped significantly ──
+    suitable = base_suitable
+    for threshold, override in SUITABILITY_OVERRIDES:
+        if score >= threshold:
+            suitable = override if override else base_suitable
+            break
+
+    result = ClassificationResult(
+        category=cat,
+        food_type=food_type,
+        description=description,
+        score=score,
+        suitable=suitable,
+        verdict=verdict,
+        risk_level=risk_level,
+    )
+    result._ai_result = ai_result  # type: ignore[attr-defined]
+    return result
+
+
+# ── CLI ──────────────────────────────────────────────────────────
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Rule-based food waste classifier for Anna-Chain"
+    )
+    parser.add_argument("--category", required=True, help="Waste category")
+    parser.add_argument("--food", required=True, help="Specific food type")
+    parser.add_argument("--description", required=True, help="Waste description")
+    parser.add_argument("--weight", type=float, default=None, help="Weight in kg")
+    parser.add_argument("--api-key", default=None, help="Gemini API key (or set GEMINI_API_KEY env var)")
+    parser.add_argument("--json", action="store_true", help="Output as JSON")
+    args = parser.parse_args()
+
+    api_key = args.api_key or os.environ.get("GEMINI_API_KEY")
+    result: ClassificationResult = classify_waste(args.category, args.food, args.description, args.weight, api_key)
+
+    ai_info = getattr(result, "_ai_result", None)
+
+    if args.json:
+        out = asdict(result)  # type: ignore[arg-type]
+        if ai_info:
+            out["ai_adjustment"] = ai_info["adjustment"]
+            out["ai_reasoning"] = ai_info["reasoning"]
+        print(json.dumps(out, indent=2))
+    else:
+        print("=" * 40)
+        print("  Classification Result")
+        print("=" * 40)
+        print(f"  Category:    {result.category}")
+        print(f"  Food Type:   {result.food_type}")
+        print(f"  Score:       {result.score}/100")
+        print(f"  Risk Level:  {result.risk_level.upper()}")
+        print(f"  Suitable:    {result.suitable}")
+        print(f"  Verdict:     {result.verdict}")
+        if ai_info:
+            print(f"  AI Adjust:   {ai_info['adjustment']:+d}")
+            print(f"  AI Reason:   {ai_info['reasoning']}")
+        print("=" * 40)
+
+
+if __name__ == "__main__":
+    main()

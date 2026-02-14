@@ -13,8 +13,7 @@ import {
   limit
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { WasteItem, UserRole } from "@/lib/types";
-import { classifyWasteLogic } from "@/lib/utils";
+import { WasteItem, UserRole, Review } from "@/lib/types";
 
 interface AppContextType {
   role: UserRole | null;
@@ -27,12 +26,16 @@ interface AppContextType {
   wasteByMonth: { month: string; year: number; waste: number; co2: number }[];
   wasteByCategory: { name: string; value: number }[];
   listingStats: { active: number; sold: number; completed: number };
-  topRestaurants: { name: string; waste: number; co2: number; rating: number }[];
+  topRestaurants: { name: string; waste: number; co2: number; rating: number; count: number }[];
+  reviews: Review[];
   setRole: (role: UserRole | null) => void;
   setUserName: (name: string) => void;
   addWasteItem: (item: Omit<WasteItem, "id" | "status" | "createdAt" | "restaurantId">) => Promise<void>;
-  buyItem: (id: string) => Promise<void>;
+  buyItem: (id: string, paymentMethod?: "cod" | "online") => Promise<void>;
   confirmPickup: (id: string) => Promise<void>;
+  addReview: (review: Omit<Review, "id" | "createdAt">) => Promise<void>;
+  getRestaurantRating: (restaurantName: string) => number;
+  getRestaurantTransactionCount: (restaurantName: string) => number;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -61,6 +64,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [role, _setRole] = useState<UserRole | null>(null);
   const [userName, _setUserName] = useState("");
   const [wasteItems, setWasteItems] = useState<WasteItem[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+
+  // Real-time listener for reviews
+  useEffect(() => {
+    const q = query(collection(db, "reviews"), orderBy("createdAt", "desc"), limit(50));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Review[];
+      setReviews(items);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Real-time listener for waste listings
   useEffect(() => {
@@ -76,12 +93,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Calculate stats dynamically
-  const soldOrPickedUp = wasteItems.filter((i) => i.status === "sold" || i.status === "picked_up");
+  // Use ALL waste items for "Potential" impact visibility, or allow toggling. 
+  // For now, based on user feedback, they want to see "their data", so we use all items.
+  const relevantItems = wasteItems; // Previously filtered for soldOrPickedUp
 
-  const totalWasteDiverted = soldOrPickedUp.reduce((s, i) => s + Number(i.weightKg || 0), 0);
+  const totalWasteDiverted = relevantItems.reduce((s, i) => s + Number(i.weightKg || 0), 0);
   const totalCO2Saved = totalWasteDiverted * 2.5;
 
-  // Count unique buyers (farmers)
+  // Count unique buyers (farmers) - this strictly needs sold/picked up though, or it's 0
+  const soldOrPickedUp = wasteItems.filter((i) => i.status === "sold" || i.status === "picked_up");
   const uniqueFarmers = new Set(soldOrPickedUp.map(i => i.buyerName).filter(Boolean));
   const totalFarmersSupported = uniqueFarmers.size;
 
@@ -104,7 +124,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       };
     });
 
-    soldOrPickedUp.forEach(item => {
+    relevantItems.forEach(item => {
       const date = new Date(item.createdAt);
       const monthIdx = date.getMonth();
       const year = date.getFullYear();
@@ -123,7 +143,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const wasteByCategory = (() => {
     const categories: Record<string, number> = {};
     let total = 0;
-    soldOrPickedUp.forEach(item => {
+    wasteItems.forEach(item => {
       const weight = Number(item.weightKg || 0);
       categories[item.category] = (categories[item.category] || 0) + weight;
       total += weight;
@@ -144,27 +164,67 @@ export function AppProvider({ children }: { children: ReactNode }) {
     completed: wasteItems.filter(i => i.status === "picked_up").length,
   };
 
-  // 4. Top Restaurants
+  // 4. Top Restaurants (Calculated from actual reviews)
   const topRestaurants = (() => {
-    const restStats: Record<string, { name: string, waste: number, co2: number, rating: number }> = {};
+    const restStats: Record<string, { name: string, waste: number, co2: number, ratingSum: number, reviewCount: number }> = {};
 
-    soldOrPickedUp.forEach(item => {
+    // Initialize with waste data
+    wasteItems.forEach(item => {
       if (!restStats[item.restaurantName]) {
         restStats[item.restaurantName] = {
           name: item.restaurantName,
           waste: 0,
           co2: 0,
-          rating: 4.0 + Math.random() // Mock rating for now as it's not in DB
+          ratingSum: 0,
+          reviewCount: 0
         };
       }
       restStats[item.restaurantName].waste += Number(item.weightKg || 0);
       restStats[item.restaurantName].co2 += Number(item.weightKg || 0) * 2.5;
     });
 
+    // Add review data
+    reviews.forEach(review => {
+      // If restaurant exists from waste data, update it. If not, we could add it, but for "Top Restaurants" usually means top impact + quality.
+      // For now, let's only consider restaurants that have activity in sold/picked_up or we can initialize them here too.
+      // Let's initialize if missing to be safe, though they should be in waste items if they are being reviewed.
+      if (!restStats[review.restaurantId]) { // Note: review uses restaurantId (which is name for now)
+        restStats[review.restaurantId] = {
+          name: review.restaurantId,
+          waste: 0,
+          co2: 0,
+          ratingSum: 0,
+          reviewCount: 0
+        };
+      }
+      restStats[review.restaurantId].ratingSum += review.rating;
+      restStats[review.restaurantId].reviewCount += 1;
+    });
+
     return Object.values(restStats)
-      .sort((a, b) => b.waste - a.waste)
+      .map(stat => ({
+        name: stat.name,
+        waste: stat.waste,
+        co2: stat.co2,
+        rating: stat.reviewCount > 0 ? stat.ratingSum / stat.reviewCount : 0,
+        count: stat.reviewCount
+      }))
+      .sort((a, b) => {
+        // Rated restaurants first, then sort by rating (desc), waste as tiebreaker
+        if (a.rating > 0 && b.rating === 0) return -1;
+        if (a.rating === 0 && b.rating > 0) return 1;
+        if (b.rating !== a.rating) return b.rating - a.rating;
+        return b.waste - a.waste;
+      })
       .slice(0, 5);
   })();
+
+  const getRestaurantRating = (restaurantName: string) => {
+    const restaurantReviews = reviews.filter(r => r.restaurantId === restaurantName);
+    if (restaurantReviews.length === 0) return 0;
+    const sum = restaurantReviews.reduce((acc, r) => acc + r.rating, 0);
+    return sum / restaurantReviews.length;
+  };
 
 
   const addWasteItem = async (item: Omit<WasteItem, "id" | "status" | "createdAt" | "restaurantId">) => {
@@ -177,12 +237,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const buyItem = async (id: string) => {
+  const getRestaurantTransactionCount = (restaurantName: string) => {
+    return wasteItems.filter(i => i.restaurantName === restaurantName && (i.status === "sold" || i.status === "picked_up")).length;
+  };
+
+  const buyItem = async (id: string, paymentMethod: "cod" | "online" = "cod") => {
     const itemRef = doc(db, "waste_listings", id);
     await updateDoc(itemRef, {
       status: "sold",
       buyerName: userName || "Anonymous Farmer",
       buyerId: userName || "farmer_id",
+      paymentMethod,
     });
 
     // Create a transaction record
@@ -207,6 +272,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const addReview = async (review: Omit<Review, "id" | "createdAt">) => {
+    await addDoc(collection(db, "reviews"), {
+      ...review,
+      createdAt: new Date().toISOString()
+    });
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -221,11 +293,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         wasteByCategory,
         listingStats,
         topRestaurants,
+        reviews,
         setRole,
         setUserName,
         addWasteItem,
         buyItem,
         confirmPickup,
+        addReview,
+        getRestaurantRating,
+        getRestaurantTransactionCount,
       }}
     >
       {children}

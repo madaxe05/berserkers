@@ -19,6 +19,8 @@
   --border-color: #1e3a2e;
   --danger: #ef4444;
   --warning: #f59e0b;
+  --accent-orange: #f97316;
+  --accent-teal: #14b8a6;
   --gradient-green: linear-gradient(135deg, #22c55e, #10b981, #059669);
   --gradient-dark: linear-gradient(180deg, #0a0f0d 0%, #111a16 50%, #0d1512 100%);
   --glass-bg: rgba(20, 31, 26, 0.6);
@@ -184,6 +186,18 @@ select.input-field {
   padding-right: 40px;
 }
 
+/* Hide number input spinners (white arrow backgrounds) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* ── Badge ───────────────────────────────────────────── */
 .badge {
   display: inline-flex;
@@ -338,6 +352,21 @@ select.input-field {
   animation: float 3s ease-in-out infinite;
 }
 
+/* ── Bar chart animation ─────────────────────────────── */
+@keyframes growUp {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.bar-animate {
+  transform-origin: bottom;
+  animation: growUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 .animate-count {
   animation: countUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
@@ -448,4 +477,16 @@ select.input-field {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* ── Responsive grid ─────────────────────────────────── */
+.grid-responsive-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 768px) {
+  .grid-responsive-2 {
+    grid-template-columns: 1fr;
+  }
 }

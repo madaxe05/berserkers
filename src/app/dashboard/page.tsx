@@ -2,7 +2,7 @@
 
 import { useApp } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
-import { Leaf, Recycle, TrendingUp, Users, Activity, Zap, CheckCircle, Clock } from "lucide-react";
+import { Leaf, Recycle, TrendingUp, Users, Activity, Zap, CheckCircle, Clock, Star } from "lucide-react";
 import { calculateCO2 } from "@/lib/utils";
 
 export default function DashboardPage() {
@@ -95,22 +95,21 @@ export default function DashboardPage() {
 
             <div style={{ height: 200, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 8, paddingTop: 20 }}>
               {wasteByMonth.map((m, i) => (
-                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: 8, height: "100%" }}>
                   <div
                     className="bar-animate"
                     style={{
                       width: "100%",
                       maxWidth: 40,
-                      height: `${(m.waste / maxWasteMonth) * 100}%`,
-                      background: i === 6 ? "var(--accent-green)" : "rgba(34,197,94,0.2)",
+                      height: `${Math.max((m.waste / maxWasteMonth) * 160, m.waste > 0 ? 4 : 0)}px`,
+                      background: i === wasteByMonth.length - 1 ? "var(--accent-green)" : "rgba(34,197,94,0.2)",
                       borderRadius: "6px 6px 2px 2px",
                       position: "relative",
                       transition: "height 1s cubic-bezier(0.4, 0, 0.2, 1)"
                     }}
                   >
-                    {/* Tooltip on hover could go here, for now just simple numbers if needed or handled by cleanliness */}
                     {m.waste > 0 && (
-                      <div style={{ position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)", fontSize: 10, color: "var(--accent-green)", fontWeight: 700 }}>
+                      <div style={{ position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)", fontSize: 10, color: "var(--accent-green)", fontWeight: 700, whiteSpace: "nowrap" }}>
                         {m.waste}
                       </div>
                     )}
@@ -131,21 +130,21 @@ export default function DashboardPage() {
 
             <div style={{ height: 200, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 8, paddingTop: 20 }}>
               {wasteByMonth.map((m, i) => (
-                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: 8, height: "100%" }}>
                   <div
                     className="bar-animate"
                     style={{
                       width: "100%",
                       maxWidth: 40,
-                      height: `${(m.co2 / maxCO2Month) * 100}%`,
-                      background: i === 6 ? "var(--accent-emerald)" : "rgba(16,185,129,0.2)",
+                      height: `${Math.max((m.co2 / maxCO2Month) * 160, m.co2 > 0 ? 4 : 0)}px`,
+                      background: i === wasteByMonth.length - 1 ? "var(--accent-emerald)" : "rgba(16,185,129,0.2)",
                       borderRadius: "6px 6px 2px 2px",
                       position: "relative",
                       transition: "height 1s cubic-bezier(0.4, 0, 0.2, 1)"
                     }}
                   >
                     {m.co2 > 0 && (
-                      <div style={{ position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)", fontSize: 10, color: "var(--accent-emerald)", fontWeight: 700 }}>
+                      <div style={{ position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)", fontSize: 10, color: "var(--accent-emerald)", fontWeight: 700, whiteSpace: "nowrap" }}>
                         {m.co2.toFixed(0)}
                       </div>
                     )}
@@ -241,7 +240,7 @@ export default function DashboardPage() {
                     <td style={{ padding: "16px", fontWeight: 600 }}>{r.name}</td>
                     <td style={{ padding: "16px", color: "var(--accent-green)" }}>{r.waste}</td>
                     <td style={{ padding: "16px" }}>
-                      <span style={{ color: "var(--accent-orange)", marginRight: 4 }}>★</span> {r.rating.toFixed(1)}
+                      <span style={{ color: "var(--accent-orange)", marginRight: 4, display: "inline-flex" }}><Star size={14} fill="var(--accent-orange)" /></span> {r.rating.toFixed(1)}
                     </td>
                     <td style={{ padding: "16px", textAlign: "right" }}>
                       <div style={{ display: "inline-block", padding: "4px 12px", borderRadius: 20, background: "rgba(34,197,94,0.1)", color: "var(--accent-green)", fontSize: 12, fontWeight: 600, border: "1px solid rgba(34,197,94,0.2)" }}>
