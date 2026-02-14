@@ -58,3 +58,36 @@ git clone https://github.com/madaxe05/berserkers.git
 cd berserkers
 npm install
 npm run dev
+
+---
+
+## Screenshots
+
+### Landing Page
+<img src="image/landing-1.jpg" width="700"/>
+<img src="image/landing-2.jpg" width="700"/>
+
+*Landing page introducing Anna-Chain and allowing users to choose between restaurant, farmer, and admin roles.*
+
+---
+
+### Restaurant Waste Upload Page
+<img src="image/restaurant-upload.jpg" width="700"/>
+
+*Interface for restaurants to upload food waste details for redistribution.*
+
+---
+
+### Farmer Marketplace
+<img src="image/farmer-marketplace.jpg" width="700"/>
+
+*Marketplace where farmers can browse available animal feed and coordinate pickups.*
+
+---
+
+### Admin Dashboard
+<img src="image/admin-dashboard-1.jpg" width="700"/>
+<img src="image/admin-dashboard-2.jpg" width="700"/>
+<img src="image/admin-dashboard-3.jpg" width="700"/>
+
+*Admin dashboard for monitoring food waste listings, users, and environmental impact metrics.*
