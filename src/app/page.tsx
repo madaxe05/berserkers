@@ -2,6 +2,7 @@
 
 import { useApp } from "@/context/AppContext";
 import { Leaf, Store, Tractor, ShieldCheck, ArrowRight, Recycle, TrendingUp, Globe, Trees, Droplets, Car, Star } from "lucide-react";
+import Image from "next/image";
 import MethaneIcon from "@/components/MethaneIcon";
 import { useRouter } from "next/navigation";
 
@@ -19,11 +20,9 @@ export default function Home() {
       <section style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 24px 40px" }}>
         <div style={{ maxWidth: 900, textAlign: "center" }}>
           {/* Logo mark */}
-          <div className="animate-fade-in" style={{ display: "inline-flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
-            <div style={{ width: 56, height: 56, borderRadius: 16, background: "var(--gradient-green)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Recycle size={30} color="#0a0f0d" strokeWidth={2.5} />
-            </div>
-            <span style={{ fontSize: 28, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.03em" }}>
+          <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 36 }}>
+            <Image src="/images/logo.png" alt="Anna-Chain Logo" width={180} height={180} style={{ borderRadius: 16 }} priority />
+            <span style={{ fontSize: 30, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.03em" }}>
               <span className="gradient-text">Anna</span><span style={{ color: "var(--text-primary)" }}>-Chain</span>
             </span>
           </div>

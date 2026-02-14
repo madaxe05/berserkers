@@ -7,7 +7,8 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useApp } from "@/context/AppContext";
 import { UserRole } from "@/lib/types";
-import { Recycle, Lock, Mail, ArrowRight, AlertCircle, Loader2, Users } from "lucide-react";
+import { Lock, Mail, ArrowRight, AlertCircle, Loader2, Users } from "lucide-react";
+import Image from "next/image";
 
 function LoginForm() {
     const router = useRouter();
@@ -149,9 +150,7 @@ function LoginForm() {
             <div className="glass animate-fade-in-up" style={{ width: "100%", maxWidth: 420, padding: 40, border: "1px solid var(--glass-border)", background: "var(--glass-bg)", borderRadius: 24, boxShadow: "0 20px 80px rgba(0,0,0,0.4)" }}>
 
                 <div style={{ textAlign: "center", marginBottom: 32 }}>
-                    <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--gradient-green)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                        <Recycle size={32} color="#0a0f0d" strokeWidth={2.5} />
-                    </div>
+                    <Image src="/images/logo.png" alt="Anna-Chain Logo" width={160} height={160} style={{ borderRadius: 16, marginBottom: 16 }} priority />
                     <h1 style={{ fontSize: 28, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", marginBottom: 8 }}>
                         {isRegistering ? "Create Account" : "Welcome Back"}
                     </h1>

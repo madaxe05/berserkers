@@ -6,9 +6,27 @@ based on category, food type keywords, and description analysis.
 
 import argparse
 import json
+import os
 import re
+import urllib.request
+import urllib.error
 from dataclasses import dataclass, asdict
 from typing import Optional
+
+
+# ── Gemini Prompt ───────────────────────────────────────────────
+
+GEMINI_SYSTEM_PROMPT = """You are a food safety analyst for animal feed. Given a waste description and a base safety score (0-100), analyze the description and return a JSON adjustment.
+
+Consider:
+- Freshness indicators (fresh, refrigerated, sealed → positive)
+- Spoilage indicators (moldy, rotten, expired, smelly → negative)
+- Contamination risks (chemicals, plastic, mixed with non-food → very negative)
+- Storage conditions mentioned
+- Hygiene indicators
+
+Return ONLY valid JSON, no markdown, no explanation:
+{"adjustment": <number from -30 to +10>, "reasoning": "<one sentence>"}"""
 
 
 # ── Data Classes ────────────────────────────────────────────────
@@ -89,6 +107,62 @@ _POSITIVE_RE = [(re.compile(pat, re.IGNORECASE), adj) for pat, adj in POSITIVE_K
 _NEGATIVE_RE = [(re.compile(pat, re.IGNORECASE), adj) for pat, adj in NEGATIVE_KEYWORDS]
 
 
+# ── Gemini AI Analysis ──────────────────────────────────────────
+
+def gemini_analyze(description: str, base_score: int, api_key: str) -> dict:
+    """
+    Call Gemini 2.0 Flash to get an AI-based score adjustment.
+
+    Returns:
+        {"adjustment": int, "reasoning": str}
+        Falls back to {"adjustment": 0, "reasoning": "..."} on any error.
+    """
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/"
+        f"models/gemini-2.0-flash:generateContent?key={api_key}"
+    )
+    payload = json.dumps({
+        "contents": [{
+            "parts": [{
+                "text": (
+                    f"Base safety score: {base_score}/100\n"
+                    f'Waste description: "{description}"\n\n'
+                    "Analyze and return the JSON adjustment."
+                )
+            }]
+        }],
+        "systemInstruction": {
+            "parts": [{"text": GEMINI_SYSTEM_PROMPT}]
+        },
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 150,
+            "responseMimeType": "application/json",
+        },
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode())
+        text = data.get("candidates", [{}])[0] \
+                    .get("content", {}) \
+                    .get("parts", [{}])[0] \
+                    .get("text", "{}")
+        parsed = json.loads(text)
+        adjustment = max(-30, min(10, int(parsed.get("adjustment", 0))))
+        reasoning = str(parsed.get("reasoning", "AI analysis complete"))
+        return {"adjustment": adjustment, "reasoning": reasoning}
+    except (urllib.error.URLError, json.JSONDecodeError, KeyError, Exception) as exc:
+        return {"adjustment": 0, "reasoning": f"AI analysis failed: {exc}"}
+
+
 # ── Classification Logic ────────────────────────────────────────
 
 def classify_waste(
@@ -96,6 +170,7 @@ def classify_waste(
     food_type: str,
     description: str,
     weight_kg: Optional[float] = None,
+    api_key: Optional[str] = None,
 ) -> ClassificationResult:
     """
     Classify a food waste item and return a safety score.
@@ -121,8 +196,14 @@ def classify_waste(
     neg_adj: int = sum(adj for pattern, adj in _NEGATIVE_RE if pattern.search(desc))
     weight_penalty: int = -3 if (weight_kg is not None and weight_kg > 50) else 0
 
-    # ── Apply adjustments & clamp ──
+    # ── Apply rule-based adjustments & clamp ──
     score = max(0, min(100, score + pos_adj + neg_adj + weight_penalty))
+
+    # ── AI adjustment (if API key provided) ──
+    ai_result: Optional[dict] = None
+    if api_key:
+        ai_result = gemini_analyze(description, score, api_key)
+        score = max(0, min(100, score + ai_result["adjustment"]))
 
     # ── Determine risk level & verdict ──
     if score >= 80:
@@ -142,7 +223,7 @@ def classify_waste(
             suitable = override if override else base_suitable
             break
 
-    return ClassificationResult(
+    result = ClassificationResult(
         category=cat,
         food_type=food_type,
         description=description,
@@ -151,6 +232,8 @@ def classify_waste(
         verdict=verdict,
         risk_level=risk_level,
     )
+    result._ai_result = ai_result  # type: ignore[attr-defined]
+    return result
 
 
 # ── CLI ──────────────────────────────────────────────────────────
@@ -163,13 +246,21 @@ def main() -> None:
     parser.add_argument("--food", required=True, help="Specific food type")
     parser.add_argument("--description", required=True, help="Waste description")
     parser.add_argument("--weight", type=float, default=None, help="Weight in kg")
+    parser.add_argument("--api-key", default=None, help="Gemini API key (or set GEMINI_API_KEY env var)")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
-    result: ClassificationResult = classify_waste(args.category, args.food, args.description, args.weight)
+    api_key = args.api_key or os.environ.get("GEMINI_API_KEY")
+    result: ClassificationResult = classify_waste(args.category, args.food, args.description, args.weight, api_key)
+
+    ai_info = getattr(result, "_ai_result", None)
 
     if args.json:
-        print(json.dumps(asdict(result), indent=2))  # type: ignore[arg-type]
+        out = asdict(result)  # type: ignore[arg-type]
+        if ai_info:
+            out["ai_adjustment"] = ai_info["adjustment"]
+            out["ai_reasoning"] = ai_info["reasoning"]
+        print(json.dumps(out, indent=2))
     else:
         print("=" * 40)
         print("  Classification Result")
@@ -180,6 +271,9 @@ def main() -> None:
         print(f"  Risk Level:  {result.risk_level.upper()}")
         print(f"  Suitable:    {result.suitable}")
         print(f"  Verdict:     {result.verdict}")
+        if ai_info:
+            print(f"  AI Adjust:   {ai_info['adjustment']:+d}")
+            print(f"  AI Reason:   {ai_info['reasoning']}")
         print("=" * 40)
 
 
